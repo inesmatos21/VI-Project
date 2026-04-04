@@ -10,8 +10,8 @@ struct Intersection;
 
 class Mesh final {
 public:
-  Mesh(std::string_view name, const std::vector<Triangle> triangles)
-      : m_Name{name}, m_Triangles{triangles} {
+  Mesh(std::string_view name, std::vector<Triangle> triangles)
+      : m_Name{name}, m_Triangles{std::move(triangles)} {
     // Compute bounding box from triangles
     if (!m_Triangles.empty()) {
       m_BoundingBox = BoundingBox{};
@@ -25,13 +25,11 @@ public:
   }
 
   bool Intersect(const Ray &r, Intersection &i) const;
-  inline const BoundingBox &GetBoundingBox() const { return m_BoundingBox; }
-  inline size_t GetTriangleCount() const noexcept { return m_Triangles.size(); }
-  inline const Triangle &GetTriangle(size_t i) const { return m_Triangles[i]; }
-
-  void AddTriangle(const Triangle &triangle) {
-    m_Triangles.push_back(triangle);
-  }
+  const BoundingBox &GetBoundingBox() const;
+  size_t GetTriangleCount() const noexcept;
+  const Triangle &GetTriangle(size_t i) const;
+  void AddTriangle(const Triangle &triangle);
+  float GetArea() const noexcept;
 
 private:
   std::string m_Name;

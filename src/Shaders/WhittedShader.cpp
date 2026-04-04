@@ -4,9 +4,13 @@
 #include "Math/RGB.hpp"
 #include "Math/Vector.hpp"
 #include "Primitive/Material.hpp"
+#include "Primitive/Primitive.hpp"
 #include "Ray/Intersection.hpp"
 #include "Ray/Ray.hpp"
 #include "Scene/Scene.hpp"
+
+#include <glm/common.hpp>
+#include <glm/geometric.hpp>
 
 namespace VI {
 

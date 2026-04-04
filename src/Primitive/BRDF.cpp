@@ -1,16 +1,23 @@
 #include "Primitive/BRDF.hpp"
 
-#include <glm/glm.hpp>
-
 #include "Math/RGB.hpp"
 #include "Math/Random.hpp"
 #include "Math/Vector.hpp"
 #include "Primitive/Material.hpp"
+#include "glm/common.hpp"
+#include "glm/exponential.hpp"
 #include "glm/ext/scalar_constants.hpp"
+#include "glm/geometric.hpp"
+#include "glm/trigonometric.hpp"
+
+#include <glm/glm.hpp>
 
 namespace VI {
 
 constexpr float MIN_ROUGHNESS = 0.02f;
+constexpr float EPS_COS = 1e-4f;
+constexpr float EPS_VOH = 1e-4f;
+constexpr float EPS_PDF = 1e-6f;
 
 Vector LambertianBRDF::Sample(const Vector &wo_local [[maybe_unused]],
                               const Material &material [[maybe_unused]]) const {
@@ -52,8 +59,17 @@ Vector MicrofacetBRDF::Sample(const Vector &wo_local,
   float roughness = glm::max(material.GetRoughness(), MIN_ROUGHNESS);
   float a = roughness * roughness;
 
-  Vector h = SampleGGX_VNDF(wo_local, a);
-  Vector wi_local = glm::reflect(-wo_local, h);
+  Vector random{Random::RandomFloat(0.0f, 1.0f),
+                Random::RandomFloat(0.0f, 1.0f), 0.f};
+  float phi = 2.0f * glm::pi<float>() * random.x;
+
+  float cos_theta =
+      glm::sqrt((1.0f - random.y) / (1.0f + (a * a - 1.0f) * random.y));
+  float sin_theta = glm::sqrt((1.0f - cos_theta * cos_theta));
+
+  Vector local_h{sin_theta * glm::cos(phi), sin_theta * glm::sin(phi),
+                 cos_theta};
+  Vector wi_local = glm::reflect(-wo_local, local_h);
 
   if (wi_local.z <= 0.0f)
     return Vector{0.0f};
@@ -92,62 +108,25 @@ float MicrofacetBRDF::PDF(const Vector &wo_local, const Vector &wi_local,
 
   Vector h = glm::normalize(wo_local + wi_local);
 
-  float NoH = glm::max(h.z, 0.0f);
-  float NoV = glm::max(wo_local.z, 1e-4f);
+  float nh = glm::max(h.z, EPS_COS);
+  float voh = glm::max(glm::dot(wo_local, h), EPS_VOH);
+  float D = D_GGX(nh, material.GetRoughness());
 
-  float roughness = glm::max(material.GetRoughness(), MIN_ROUGHNESS);
-  float a = roughness * roughness;
-
-  float D = D_GGX(NoH, a);
-  float G1 = G1_Smith(NoV, a);
-
-  // Visible-normal GGX PDF converted from half-vector to reflected direction.
-  // For the Heitz VNDF sampler, the reflected-direction density simplifies to
-  // D(h) * G1(v) / (4 * max(n·v, 0)).
-  return (D * G1) / (4.0f * NoV);
+  return glm::max(D * nh / (4.0f * voh), EPS_PDF);
 }
 
-float MicrofacetBRDF::G1_Smith(float NoX, float a) const {
-  float a2 = a * a;
-  float denom = NoX + glm::sqrt(a2 + (1.0f - a2) * NoX * NoX);
-  return (2.0f * NoX) / denom;
-}
-
-float MicrofacetBRDF::G_Smith(float NoV, float NoL, float a) const {
-  return G1_Smith(NoV, a) * G1_Smith(NoL, a);
+float MicrofacetBRDF::G_Smith(float NoV, float NoL, float roughness) const {
+  float a = glm::max(roughness, MIN_ROUGHNESS);
+  float k = a * 0.5;
+  float nv = glm::clamp(NoV, EPS_COS, 1.0f);
+  float nl = glm::clamp(NoL, EPS_COS, 1.0f);
+  float G1V = nv / (nv * (1.0f - k) + k);
+  float G1L = nl / (nl * (1.0 - k) + k);
+  return G1V * G1L;
 }
 
 RGB MicrofacetBRDF::Fresnel_Schlick(float cosTheta, const RGB &F0) const {
   return F0 + (RGB{1.0f} - F0) * glm::pow(1.0f - cosTheta, 5.0f);
-}
-
-Vector MicrofacetBRDF::SampleGGX_VNDF(const Vector &wo, float a) const {
-  // Stretch view
-  Vector V = glm::normalize(Vector(a * wo.x, a * wo.y, wo.z));
-
-  // Orthonormal basis
-  float lensq = V.x * V.x + V.y * V.y;
-  Vector T1 = lensq > 0.0f ? Vector(-V.y, V.x, 0.0f) / glm::sqrt(lensq)
-                           : Vector(1.0f, 0.0f, 0.0f);
-  Vector T2 = glm::cross(V, T1);
-
-  float u1 = Random::RandomFloat(0.f, 1.f);
-  float u2 = Random::RandomFloat(0.f, 1.f);
-
-  float r = glm::sqrt(u1);
-  float phi = 2.0f * glm::pi<float>() * u2;
-  float t1 = r * glm::cos(phi);
-  float t2 = r * glm::sin(phi);
-
-  float s = 0.5f * (1.0f + V.z);
-  t2 = (1.0f - s) * glm::sqrt(glm::max(0.0f, 1.0f - t1 * t1)) + s * t2;
-
-  Vector H = t1 * T1 + t2 * T2 +
-             glm::sqrt(glm::max(0.0f, 1.0f - t1 * t1 - t2 * t2)) * V;
-
-  // Unstretch
-  H = glm::normalize(Vector(a * H.x, a * H.y, glm::max(0.0f, H.z)));
-  return H;
 }
 
 float MicrofacetBRDF::D_GGX(float NoH, float roughness) const {

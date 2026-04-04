@@ -2,6 +2,8 @@
 
 #include "Math/RGB.hpp"
 
+#include <concepts>
+
 namespace VI {
 class Camera;
 class Scene;

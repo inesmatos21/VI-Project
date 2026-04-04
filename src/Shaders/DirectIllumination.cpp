@@ -3,17 +3,26 @@
 #include "Light/Light.hpp"
 #include "Math/DiscreteDistribution.hpp"
 #include "Math/Math.hpp"
+#include "Math/RGB.hpp"
 #include "Math/Random.hpp"
+#include "Math/Vector.hpp"
 #include "Primitive/BRDF.hpp"
 #include "Primitive/Geometry/Mesh.hpp"
+#include "Primitive/Geometry/Triangle.hpp"
 #include "Primitive/Material.hpp"
 #include "Primitive/Primitive.hpp"
 #include "Ray/Intersection.hpp"
 #include "Ray/Ray.hpp"
 #include "Scene/Scene.hpp"
+#include "glm/common.hpp"
+#include "glm/exponential.hpp"
+#include "glm/geometric.hpp"
 
+#include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <optional>
+#include <variant>
 
 namespace VI {
 namespace {
@@ -24,21 +33,8 @@ struct AreaLightSample {
   float AreaPDF{0.f};
 };
 
-float ComputeTriangleArea(const Triangle &triangle) {
-  const auto [v1, v2, v3] = triangle.GetVertices();
-  return 0.5f * glm::length(glm::cross(v2 - v1, v3 - v1));
-}
-
-float ComputeMeshArea(const Mesh &mesh) {
-  float total_area = 0.f;
-  for (size_t i = 0; i < mesh.GetTriangleCount(); ++i) {
-    total_area += ComputeTriangleArea(mesh.GetTriangle(i));
-  }
-  return total_area;
-}
-
 std::optional<AreaLightSample> SampleMeshAreaLight(const Mesh &mesh) {
-  const float total_area = ComputeMeshArea(mesh);
+  const float total_area = mesh.GetArea();
   if (total_area <= EPSILON) {
     return std::nullopt;
   }
@@ -49,7 +45,7 @@ std::optional<AreaLightSample> SampleMeshAreaLight(const Mesh &mesh) {
 
   for (size_t i = 0; i < mesh.GetTriangleCount(); ++i) {
     const Triangle &triangle = mesh.GetTriangle(i);
-    cumulative_area += ComputeTriangleArea(triangle);
+    cumulative_area += triangle.GetArea();
     if (target <= cumulative_area || i + 1 == mesh.GetTriangleCount()) {
       sampled_triangle = &triangle;
       break;
@@ -269,15 +265,16 @@ RGB SampleDirectIllumination(const Ray &ray, const Scene &scene,
 
     for (const int light_index : distribution.LightIndices) {
       const Light *light = scene.GetLights()[light_index].get();
-      direct_lighting += EstimateDirectIllumination(ray, scene, intersection,
-                                                    material, light);
+      direct_lighting +=
+          EstimateDirectIllumination(ray, scene, intersection, material, light);
     }
 
     return direct_lighting;
   }
   case DirectIlluminationMode::Uniform: {
     const SelectedLight selected_light = SelectUniformLight(scene);
-    if (selected_light.LightPtr == nullptr || selected_light.SelectionPDF <= 0.f) {
+    if (selected_light.LightPtr == nullptr ||
+        selected_light.SelectionPDF <= 0.f) {
       return RGB{0.f};
     }
 
@@ -287,7 +284,8 @@ RGB SampleDirectIllumination(const Ray &ray, const Scene &scene,
   }
   case DirectIlluminationMode::Importance: {
     const SelectedLight selected_light = SelectImportanceLight(scene);
-    if (selected_light.LightPtr == nullptr || selected_light.SelectionPDF <= 0.f) {
+    if (selected_light.LightPtr == nullptr ||
+        selected_light.SelectionPDF <= 0.f) {
       return RGB{0.f};
     }
 

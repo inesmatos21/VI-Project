@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Math/RGB.hpp"
 #include "Scene/Scene.hpp"
 #include "Shaders/Shader.hpp"
 

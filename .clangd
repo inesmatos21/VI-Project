@@ -1,0 +1,6 @@
+Completion:
+  HeaderInsertion: Never
+
+Diagnostics:
+  UnusedIncludes: Strict
+  MissingIncludes: Strict

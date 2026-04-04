@@ -6,6 +6,9 @@
 #include "Shaders/Shader.hpp"
 #include "Utils/ProgressBar.hpp"
 
+#include <future>
+#include <vector>
+
 namespace VI {
 class Scene;
 class Camera;
@@ -19,6 +22,8 @@ public:
 
     Image image{static_cast<int>(width), static_cast<int>(height)};
     ProgressBar progress{static_cast<int>(width * height)};
+
+    std::vector<std::future<void>> futures;
 
     float spp_factor = 1.0f / samples_per_pixel;
     for (int y = 0; y < static_cast<int>(height); ++y) {

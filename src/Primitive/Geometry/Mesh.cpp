@@ -4,6 +4,7 @@
 #include "Ray/Ray.hpp"
 
 namespace VI {
+
 bool Mesh::Intersect(const Ray &r, Intersection &intersection) const {
   float tmin, tmax;
   if (!m_BoundingBox.Intersect(r, tmin, tmax)) {
@@ -27,6 +28,26 @@ bool Mesh::Intersect(const Ray &r, Intersection &intersection) const {
   }
 
   return intersection.Distance != -1;
+}
+
+const BoundingBox &Mesh::GetBoundingBox() const { return m_BoundingBox; }
+
+size_t Mesh::GetTriangleCount() const noexcept { return m_Triangles.size(); }
+
+const Triangle &Mesh::GetTriangle(size_t i) const { return m_Triangles[i]; }
+
+void Mesh::AddTriangle(const Triangle &triangle) {
+  m_Triangles.push_back(triangle);
+}
+
+float Mesh::GetArea() const noexcept {
+  float total_area{0.f};
+
+  for (const auto &triangle : m_Triangles) {
+    total_area += triangle.GetArea();
+  }
+
+  return total_area;
 }
 
 } // namespace VI

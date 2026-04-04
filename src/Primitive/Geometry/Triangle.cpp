@@ -6,6 +6,16 @@
 
 namespace VI {
 
+Triangle::Triangle(const Point &v1, const Point &v2, const Point &v3,
+                   const Vector &normal, bool back_face_culling)
+    : m_V1{v1}, m_V2{v2}, m_V3{v3}, m_Normal{normal},
+      m_BackFaceCulling{back_face_culling},
+      m_Area{0.5f * glm::length(glm::cross(m_V2 - m_V1, m_V3 - m_V1))} {
+  m_BoundingBox = {.Min = v1, .Max = v1};
+  m_BoundingBox.Update(v2);
+  m_BoundingBox.Update(v3);
+}
+
 bool Triangle::Intersect(const Ray &r, Intersection &intersection) const {
   float tmin, tmax;
   if (!m_BoundingBox.Intersect(r, tmin, tmax)) {
@@ -54,4 +64,15 @@ bool Triangle::Intersect(const Ray &r, Intersection &intersection) const {
 
   return true;
 }
+
+const BoundingBox &Triangle::GetBoundingBox() const { return m_BoundingBox; }
+
+std::tuple<Point, Point, Point> Triangle::GetVertices() const {
+  return std::make_tuple(m_V1, m_V2, m_V3);
+}
+
+Vector Triangle::GetNormal() const noexcept { return m_Normal; }
+
+float Triangle::GetArea() const noexcept { return m_Area; }
+
 } // namespace VI

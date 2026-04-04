@@ -2,9 +2,12 @@
 
 #include "Light/Light.hpp"
 #include "Math/Math.hpp"
+#include "Math/RGB.hpp"
 #include "Math/Random.hpp"
+#include "Math/Vector.hpp"
 #include "Primitive/BRDF.hpp"
 #include "Primitive/Geometry/Mesh.hpp"
+#include "Primitive/Geometry/Triangle.hpp"
 #include "Primitive/Material.hpp"
 #include "Primitive/Primitive.hpp"
 #include "Ray/Intersection.hpp"
@@ -12,8 +15,14 @@
 #include "Scene/Scene.hpp"
 #include "Shaders/DirectIllumination.hpp"
 
+#include <glm/common.hpp>
+#include <glm/exponential.hpp>
 #include <glm/geometric.hpp>
+
+#include <algorithm>
+#include <cstddef>
 #include <optional>
+#include <variant>
 
 namespace VI {
 namespace {
@@ -55,7 +64,7 @@ std::optional<MeshSample> SampleMesh(const Mesh &mesh) {
   const Triangle *sampled = nullptr;
   for (size_t i = 0; i < mesh.GetTriangleCount(); ++i) {
     const Triangle &tri = mesh.GetTriangle(i);
-    cumulative += ComputeTriangleArea(tri);
+    cumulative += tri.GetArea();
     if (target <= cumulative || i + 1 == mesh.GetTriangleCount()) {
       sampled = &tri;
       break;
@@ -120,11 +129,13 @@ RGB VeachShader::Execute(const Ray &ray, const Scene &scene) const {
     return mat.GetRadiance();
 
   if constexpr (kVeachMode == VeachMode::NEEOnly) {
-    return EvaluateLightStrategy(ray, scene, intersection, mat, /*apply_mis=*/false);
+    return EvaluateLightStrategy(ray, scene, intersection, mat,
+                                 /*apply_mis=*/false);
   }
 
   if constexpr (kVeachMode == VeachMode::BRDFOnly) {
-    return EvaluateBRDFStrategy(ray, scene, intersection, mat, /*apply_mis=*/false);
+    return EvaluateBRDFStrategy(ray, scene, intersection, mat,
+                                /*apply_mis=*/false);
   }
 
   // One-sample MIS for the depth-2 direct-light integral: choose one strategy
@@ -132,23 +143,27 @@ RGB VeachShader::Execute(const Ray &ray, const Scene &scene) const {
   // against the competing PDF expressed at the same vertex.
   constexpr float p_select = 0.5f;
   if (Random::RandomFloat(0.f, 1.f) < p_select) {
-    return EvaluateLightStrategy(ray, scene, intersection, mat, /*apply_mis=*/true) / p_select;
+    return EvaluateLightStrategy(ray, scene, intersection, mat,
+                                 /*apply_mis=*/true) /
+           p_select;
   }
-  return EvaluateBRDFStrategy(ray, scene, intersection, mat, /*apply_mis=*/true) / p_select;
+  return EvaluateBRDFStrategy(ray, scene, intersection, mat,
+                              /*apply_mis=*/true) /
+         p_select;
 }
 
 RGB VeachShader::EvaluateLightStrategy(const Ray &ray, const Scene &scene,
-                                        const Intersection &intersection,
-                                        const Material &material,
-                                        bool apply_mis) const {
+                                       const Intersection &intersection,
+                                       const Material &material,
+                                       bool apply_mis) const {
   const int num_lights = CountAreaLights(scene);
   if (num_lights == 0)
     return {};
 
   // Uniformly select one area light
-  const int selected_idx = std::min(
-      static_cast<int>(Random::RandomFloat(0.f, 1.f) * num_lights),
-      num_lights - 1);
+  const int selected_idx =
+      std::min(static_cast<int>(Random::RandomFloat(0.f, 1.f) * num_lights),
+               num_lights - 1);
   const AreaLight *area_light = GetNthAreaLight(scene, selected_idx);
   if (!area_light)
     return {};
@@ -165,7 +180,8 @@ RGB VeachShader::EvaluateLightStrategy(const Ray &ray, const Scene &scene,
   if (!sample.has_value() || sample->AreaPDF <= 0.f)
     return {};
 
-  const Vector shading_normal = FaceForward(intersection.Normal, -ray.Direction);
+  const Vector shading_normal =
+      FaceForward(intersection.Normal, -ray.Direction);
   const Vector to_light =
       (sample->Position + sample->Normal * EPSILON) - intersection.Position;
   const float dist_sq = glm::dot(to_light, to_light);
@@ -197,7 +213,8 @@ RGB VeachShader::EvaluateLightStrategy(const Ray &ray, const Scene &scene,
   const RGB f = microfacet.Evaluate(wo_local, wi_local, material);
 
   // Solid-angle PDF = p_selection * p_area * d² / cos_light
-  const float p_light_sa = (1.f / num_lights) * sample->AreaPDF * dist_sq / cos_light;
+  const float p_light_sa =
+      (1.f / num_lights) * sample->AreaPDF * dist_sq / cos_light;
   if (p_light_sa <= 0.f)
     return {};
 
@@ -205,16 +222,19 @@ RGB VeachShader::EvaluateLightStrategy(const Ray &ray, const Scene &scene,
   const RGB Le = light_mat.GetRadiance();
 
   // f * Le * cos / p_light_sa, optionally weighted by power heuristic
-  const float w = apply_mis ? PowerHeuristic(p_light_sa, microfacet.PDF(wo_local, wi_local, material))
-                             : 1.f;
+  const float w =
+      apply_mis ? PowerHeuristic(p_light_sa,
+                                 microfacet.PDF(wo_local, wi_local, material))
+                : 1.f;
   return (f * Le * cos_surface * w) / p_light_sa;
 }
 
 RGB VeachShader::EvaluateBRDFStrategy(const Ray &ray, const Scene &scene,
-                                       const Intersection &intersection,
-                                       const Material &material,
-                                       bool apply_mis) const {
-  const Vector shading_normal = FaceForward(intersection.Normal, -ray.Direction);
+                                      const Intersection &intersection,
+                                      const Material &material,
+                                      bool apply_mis) const {
+  const Vector shading_normal =
+      FaceForward(intersection.Normal, -ray.Direction);
   const OrthonormalBasis basis{shading_normal};
   const Vector wo_local = basis.WorldToLocal(-ray.Direction);
   if (wo_local.z <= 0.f)
@@ -253,8 +273,10 @@ RGB VeachShader::EvaluateBRDFStrategy(const Ray &ray, const Scene &scene,
         if (lmesh) {
           const float mesh_area = ComputeMeshArea(*lmesh);
           if (mesh_area > EPSILON) {
-            const Vector light_normal = FaceForward(secondary.Normal, -wi_world);
-            const float cos_light = glm::max(glm::dot(light_normal, -wi_world), 0.f);
+            const Vector light_normal =
+                FaceForward(secondary.Normal, -wi_world);
+            const float cos_light =
+                glm::max(glm::dot(light_normal, -wi_world), 0.f);
             if (cos_light > 0.f) {
               const float dist_sq = secondary.Distance * secondary.Distance;
               const float p_light_sa =

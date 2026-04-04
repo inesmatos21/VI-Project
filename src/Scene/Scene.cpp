@@ -2,8 +2,8 @@
 
 #include "Math/DiscreteDistribution.hpp"
 #include "Math/Math.hpp"
-#include "Primitive/Geometry/Mesh.hpp"
 #include "Primitive/Geometry/Geometry.hpp"
+#include "Primitive/Geometry/Mesh.hpp"
 #include "Ray/Intersection.hpp"
 #include "Ray/Ray.hpp"
 
@@ -123,6 +123,48 @@ bool Scene::Visibility(const Ray &ray, float max_distance) const {
     }
   }
   return true;
+}
+
+void Scene::AddPrimitive(Geometry primitive, int material_index) {
+  assert(material_index >= 0 &&
+         static_cast<std::size_t>(material_index) < m_Materials.size() &&
+         "Material index out of range");
+
+  m_Primitives.push_back(Primitive{.Geometry = std::move(primitive),
+                                   .MaterialIndex = material_index});
+
+  auto &material = m_Materials[material_index];
+  if (material.GetEmissionPower() > 0.f) {
+    m_Lights.emplace_back(std::make_unique<AreaLight>(
+        material_index, static_cast<int>(m_Primitives.size() - 1)));
+  }
+}
+
+int Scene::AddMaterial(MaterialDesc &&desc) {
+  m_Materials.emplace_back(std::move(desc));
+  return m_Materials.size() - 1;
+}
+
+void Scene::AddLight(std::unique_ptr<Light> light) {
+  m_Lights.emplace_back(std::move(light));
+}
+
+const Primitive &Scene::GetPrimitive(int primitive_index) const {
+  return m_Primitives[primitive_index];
+}
+
+const Material &Scene::GetMaterial(int material_index) const {
+  return m_Materials[material_index];
+}
+
+std::span<const std::unique_ptr<Light>> Scene::GetLights() const {
+  return m_Lights;
+}
+
+size_t Scene::GetPrimitiveCount() const { return m_Primitives.size(); }
+
+const LightSamplingDistribution &Scene::GetLightSamplingDistribution() const {
+  return m_LightSamplingDistribution;
 }
 
 BoundingBox Scene::ComputeBoundingBox() const {
