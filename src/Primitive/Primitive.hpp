@@ -2,9 +2,11 @@
 
 #include "Geometry/Geometry.hpp"
 
-namespace VI {
+namespace VI
+{
 
-struct Primitive {
+struct Primitive
+{
   Geometry Geometry;
   int MaterialIndex;
 };

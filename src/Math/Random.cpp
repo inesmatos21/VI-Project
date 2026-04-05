@@ -4,9 +4,12 @@
 #include <cstdint>
 #include <random>
 
-namespace VI {
-namespace {
-uint64_t SplitMix64(uint64_t &state) {
+namespace VI
+{
+namespace
+{
+uint64_t SplitMix64(uint64_t& state)
+{
   state += 0x9e3779b97f4a7c15ULL;
   uint64_t z = state;
   z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
@@ -15,7 +18,8 @@ uint64_t SplitMix64(uint64_t &state) {
 }
 } // namespace
 
-void Random::Seed(uint64_t seed) {
+void Random::Seed(uint64_t seed)
+{
   uint64_t state = seed;
   std::seed_seq seq{
       static_cast<uint32_t>(SplitMix64(state)),
@@ -26,12 +30,14 @@ void Random::Seed(uint64_t seed) {
   s_Rng.seed(seq);
 }
 
-float Random::RandomFloat(float min, float max) {
+float Random::RandomFloat(float min, float max)
+{
   std::uniform_real_distribution<float> dist{min, max};
   return dist(s_Rng);
 }
 
-Vector Random::RandomVec3(float min, float max) {
+Vector Random::RandomVec3(float min, float max)
+{
   return {
       RandomFloat(min, max),
       RandomFloat(min, max),
@@ -39,11 +45,14 @@ Vector Random::RandomVec3(float min, float max) {
   };
 }
 
-Point Random::RandomInUnitDisk() {
-  while (true) {
+Point Random::RandomInUnitDisk()
+{
+  while (true)
+  {
     Point p = RandomVec3();
 
-    if ((p.x * p.x + p.y * p.y) < 1.f) {
+    if ((p.x * p.x + p.y * p.y) < 1.f)
+    {
       return p;
     }
   }

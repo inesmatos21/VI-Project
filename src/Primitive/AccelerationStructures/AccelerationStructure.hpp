@@ -1,15 +1,16 @@
 #pragma once
 
-namespace VI {
+namespace VI
+{
 struct Ray;
 class Scene;
 struct Intersection;
 
-class AccelerationStructure {
+class AccelerationStructure
+{
 public:
   virtual ~AccelerationStructure() = default;
-  virtual bool Trace(const Ray &ray, const Scene &scene,
-                     Intersection &intersection) const = 0;
-  virtual void Build(const Scene &scene) = 0;
+  virtual bool Trace(const Ray& ray, const Scene& scene, Intersection& intersection) const = 0;
+  virtual void Build(const Scene& scene) = 0;
 };
 } // namespace VI

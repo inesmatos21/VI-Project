@@ -5,19 +5,22 @@
 
 #include <glm/ext/vector_float2.hpp>
 
-namespace VI {
-class Camera final {
+namespace VI
+{
+class Camera final
+{
 public:
-  struct Resolution {
+  struct Resolution
+  {
     float Width, Height;
   };
 
-  Camera(Point eye, Point at, Vector up, int width, int height, float fov_h,
-         float defocus_angle = 0.f, float focus_dist = 1.);
+  Camera(Point eye, Point at, Vector up, int width, int height, float fov_h, float defocus_angle = 0.f, float focus_dist = 1.);
 
   Ray GenerateRay(int x, int y, glm::vec2 jitter = {0.5f, 0.5f}) const;
 
-  inline Resolution GetResolution() const noexcept {
+  inline Resolution GetResolution() const noexcept
+  {
     return {static_cast<float>(m_Width), static_cast<float>(m_Height)};
   }
 

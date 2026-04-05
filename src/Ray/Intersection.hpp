@@ -2,9 +2,11 @@
 
 #include "Math/Vector.hpp"
 
-namespace VI {
+namespace VI
+{
 
-struct Intersection {
+struct Intersection
+{
   Vector Position;
   Vector Normal;
   float Distance{-1};

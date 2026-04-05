@@ -11,17 +11,21 @@
 #include <stdexcept>
 #include <string>
 
-namespace VI {
+namespace VI
+{
 
-Image ImagePPM::Load(const std::string &filename [[maybe_unused]]) {
+Image ImagePPM::Load(const std::string& filename [[maybe_unused]])
+{
   throw std::runtime_error("Not implemented");
 }
 
-bool ImagePPM::Save(const Image &image, const std::string &filename) {
+bool ImagePPM::Save(const Image& image, const std::string& filename)
+{
   std::ofstream file;
   file.open(filename.data(), std::ios::out); // Text mode is fine for P3
 
-  if (file.fail()) {
+  if (file.fail())
+  {
     std::cout << "Failed to open file" << std::endl;
     return false;
   }
@@ -30,9 +34,11 @@ bool ImagePPM::Save(const Image &image, const std::string &filename) {
   int height = image.GetHeight();
 
   file << "P3\n" << width << " " << height << "\n255\n";
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
-      const auto &data = image.Get(x, y);
+  for (int y = 0; y < height; y++)
+  {
+    for (int x = 0; x < width; x++)
+    {
+      const auto& data = image.Get(x, y);
 
       // Tone mapping (Reinhard)
       float r = data.r / (1.0f + data.r);

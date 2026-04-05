@@ -15,7 +15,8 @@
 
 using namespace VI;
 
-int main() {
+int main()
+{
   auto begin = std::chrono::system_clock::now();
 
   constexpr int w = 800;
@@ -37,8 +38,7 @@ int main() {
   scene.Build();
   Renderer renderer;
   constexpr int spp = 256;
-  const auto image =
-      renderer.Render(scene, camera, veach_shader, spp, true);
+  const auto image = renderer.Render(scene, camera, veach_shader, spp, true);
 
   ImagePPM::Save(image, "image.ppm");
 

@@ -5,17 +5,18 @@
 
 #include <tuple>
 
-namespace VI {
+namespace VI
+{
 struct Ray;
 struct Intersection;
 
-class Triangle final {
+class Triangle final
+{
 public:
-  Triangle(const Point &v1, const Point &v2, const Point &v3,
-           const Vector &normal, bool back_face_culling = false);
+  Triangle(const Point& v1, const Point& v2, const Point& v3, const Vector& normal, bool back_face_culling = false);
 
-  bool Intersect(const Ray &r, Intersection &i) const;
-  const BoundingBox &GetBoundingBox() const;
+  bool Intersect(const Ray& r, Intersection& i) const;
+  const BoundingBox& GetBoundingBox() const;
 
   std::tuple<Point, Point, Point> GetVertices() const;
   Vector GetNormal() const noexcept;

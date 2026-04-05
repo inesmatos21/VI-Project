@@ -18,62 +18,60 @@
 
 #include <algorithm>
 
-namespace VI {
+namespace VI
+{
 constexpr float MAX_DEPTH = 5;
 constexpr int RUSSIAN_ROULETTE_DEPTH = 3;
 
-RGB PathTracingShader::Execute(const Ray &ray, const Scene &scene) const {
+RGB PathTracingShader::Execute(const Ray& ray, const Scene& scene) const
+{
   Intersection intersection{};
-  if (!scene.Trace(ray, intersection)) {
+  if (!scene.Trace(ray, intersection))
+  {
     return m_BackgroundColor;
   }
 
   return DoExecute(ray, scene, intersection);
 }
 
-RGB PathTracingShader::DoExecute(const Ray &ray, const Scene &scene,
-                                 const Intersection &intersection, int depth,
-                                 bool allow_emissive) const {
+RGB PathTracingShader::DoExecute(const Ray& ray, const Scene& scene, const Intersection& intersection, int depth, bool allow_emissive) const
+{
   RGB color{0.0f};
-  if (depth > MAX_DEPTH) {
+  if (depth > MAX_DEPTH)
+  {
     return color;
   }
 
-  const Primitive &primitive = scene.GetPrimitive(intersection.ObjectIndex);
-  const Material &material = scene.GetMaterial(primitive.MaterialIndex);
+  const Primitive& primitive = scene.GetPrimitive(intersection.ObjectIndex);
+  const Material& material = scene.GetMaterial(primitive.MaterialIndex);
 
-  if (material.GetEmissionPower() > 0.0f) {
+  if (material.GetEmissionPower() > 0.0f)
+  {
     return allow_emissive ? material.GetRadiance() : RGB{0.0f};
   }
 
-  color += IndirectIllumination(ray, scene, intersection, material, depth,
-                                allow_emissive);
+  color += IndirectIllumination(ray, scene, intersection, material, depth, allow_emissive);
 
-    color += DirectIllumination(ray, scene, intersection);
+  color += DirectIllumination(ray, scene, intersection);
 
   return color;
 }
 
-RGB PathTracingShader::DirectIllumination(
-    const Ray &ray, const Scene &scene,
-    const Intersection &intersection) const {
-  const auto &object = scene.GetPrimitive(intersection.ObjectIndex);
-  const auto &material = scene.GetMaterial(object.MaterialIndex);
+RGB PathTracingShader::DirectIllumination(const Ray& ray, const Scene& scene, const Intersection& intersection) const
+{
+  const auto& object = scene.GetPrimitive(intersection.ObjectIndex);
+  const auto& material = scene.GetMaterial(object.MaterialIndex);
 
-  return SampleDirectIllumination(ray, scene, intersection, material,
-                                  m_DirectIlluminationMode);
+  return SampleDirectIllumination(ray, scene, intersection, material, m_DirectIlluminationMode);
 }
 
-RGB PathTracingShader::IndirectIllumination(const Ray &ray, const Scene &scene,
-                                            const Intersection &intersection,
-                                            const Material &material, int depth,
-                                            bool allow_emissive
-                                            [[maybe_unused]]) const {
-  const Vector shading_normal =
-      FaceForward(intersection.Normal, -ray.Direction);
+RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, const Intersection& intersection, const Material& material, int depth, bool allow_emissive [[maybe_unused]]) const
+{
+  const Vector shading_normal = FaceForward(intersection.Normal, -ray.Direction);
   const OrthonormalBasis basis{shading_normal};
   const Vector wo_local = basis.WorldToLocal(-ray.Direction);
-  if (wo_local.z <= 0.f) {
+  if (wo_local.z <= 0.f)
+  {
     return RGB{0.0f};
   }
 
@@ -82,12 +80,10 @@ RGB PathTracingShader::IndirectIllumination(const Ray &ray, const Scene &scene,
   const float specular_probability = material.GetSpecularProbability();
   const float diffuse_probability = 1.0f - specular_probability;
 
-  const bool sample_specular =
-      Random::RandomFloat(0.f, 1.f) < specular_probability;
-  const Vector wi_local = sample_specular
-                              ? microfacet.Sample(wo_local, material)
-                              : lambertian.Sample(wo_local, material);
-  if (wi_local.z <= 0.f) {
+  const bool sample_specular = Random::RandomFloat(0.f, 1.f) < specular_probability;
+  const Vector wi_local = sample_specular ? microfacet.Sample(wo_local, material) : lambertian.Sample(wo_local, material);
+  if (wi_local.z <= 0.f)
+  {
     return RGB{0.0f};
   }
 
@@ -95,36 +91,34 @@ RGB PathTracingShader::IndirectIllumination(const Ray &ray, const Scene &scene,
   const RGB specular_f = microfacet.Evaluate(wo_local, wi_local, material);
   const float diffuse_pdf = lambertian.PDF(wo_local, wi_local, material);
   const float specular_pdf = microfacet.PDF(wo_local, wi_local, material);
-  const RGB f =
-      diffuse_probability * diffuse_f + specular_probability * specular_f;
-  const float pdf =
-      diffuse_probability * diffuse_pdf + specular_probability * specular_pdf;
-  if (pdf <= 0.f) {
+  const RGB f = diffuse_probability * diffuse_f + specular_probability * specular_f;
+  const float pdf = diffuse_probability * diffuse_pdf + specular_probability * specular_pdf;
+  if (pdf <= 0.f)
+  {
     return RGB{0.0f};
   }
 
   const float cos_theta = wi_local.z;
   const RGB throughput = (f * cos_theta) / pdf;
   float continuation_probability = 1.0f;
-  if (depth >= RUSSIAN_ROULETTE_DEPTH) {
-    continuation_probability =
-        glm::clamp(std::max(throughput.x, std::max(throughput.y, throughput.z)),
-                   0.05f, 0.95f);
-    if (Random::RandomFloat(0.f, 1.f) >= continuation_probability) {
+  if (depth >= RUSSIAN_ROULETTE_DEPTH)
+  {
+    continuation_probability = glm::clamp(std::max(throughput.x, std::max(throughput.y, throughput.z)), 0.05f, 0.95f);
+    if (Random::RandomFloat(0.f, 1.f) >= continuation_probability)
+    {
       return RGB{0.0f};
     }
   }
 
   const Vector wi_world = glm::normalize(basis.LocalToWorld(wi_local));
-  const Ray scattered_ray =
-      Ray::WithOffset(intersection.Position, wi_world, shading_normal);
+  const Ray scattered_ray = Ray::WithOffset(intersection.Position, wi_world, shading_normal);
 
   Intersection scattered_intersection{};
   RGB incoming_radiance = m_BackgroundColor;
-  if (scene.Trace(scattered_ray, scattered_intersection)) {
+  if (scene.Trace(scattered_ray, scattered_intersection))
+  {
     const bool next_allow_emissive = sample_specular;
-    incoming_radiance = DoExecute(scattered_ray, scene, scattered_intersection,
-                                  depth + 1, next_allow_emissive);
+    incoming_radiance = DoExecute(scattered_ray, scene, scattered_intersection, depth + 1, next_allow_emissive);
   }
 
   return throughput * incoming_radiance / continuation_probability;

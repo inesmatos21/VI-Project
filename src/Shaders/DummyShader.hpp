@@ -4,14 +4,17 @@
 #include "Scene/Scene.hpp"
 #include "Shaders/Shader.hpp"
 
-namespace VI {
+namespace VI
+{
 struct Ray;
 
-class DummyShader final {
+class DummyShader final
+{
 public:
   DummyShader(int width, int height) : m_Width{width}, m_Height{height} {}
 
-  RGB Execute(const Ray &ray, const Scene &scene [[maybe_unused]]) const {
+  RGB Execute(const Ray& ray, const Scene& scene [[maybe_unused]]) const
+  {
     float width = static_cast<float>(m_Width);
     float height = static_cast<float>(m_Height);
 

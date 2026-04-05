@@ -2,7 +2,8 @@
 
 #include "Scene/Scene.hpp"
 
-namespace VI {
+namespace VI
+{
 Scene CreateCornellBox();
 Scene CreateImportanceSamplingCornellBox();
 Scene WhittedCornellBox();

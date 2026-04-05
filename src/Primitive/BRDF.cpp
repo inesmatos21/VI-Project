@@ -12,15 +12,16 @@
 
 #include <glm/glm.hpp>
 
-namespace VI {
+namespace VI
+{
 
 constexpr float MIN_ROUGHNESS = 0.02f;
 constexpr float EPS_COS = 1e-4f;
 constexpr float EPS_VOH = 1e-4f;
 constexpr float EPS_PDF = 1e-6f;
 
-Vector LambertianBRDF::Sample(const Vector &wo_local [[maybe_unused]],
-                              const Material &material [[maybe_unused]]) const {
+Vector LambertianBRDF::Sample(const Vector& wo_local [[maybe_unused]], const Material& material [[maybe_unused]]) const
+{
   float u1 = Random::RandomFloat(0, 1);
   float u2 = Random::RandomFloat(0, 1);
 
@@ -34,41 +35,37 @@ Vector LambertianBRDF::Sample(const Vector &wo_local [[maybe_unused]],
   return Vector{x, y, z};
 }
 
-RGB LambertianBRDF::Evaluate(const Vector &wo_local [[maybe_unused]],
-                             const Vector &wi_local [[maybe_unused]],
-                             const Material &material) const {
+RGB LambertianBRDF::Evaluate(const Vector& wo_local [[maybe_unused]], const Vector& wi_local [[maybe_unused]], const Material& material) const
+{
 
   return material.GetAlbedo() / glm::pi<float>();
 }
 
-float LambertianBRDF::PDF(const Vector &wo_local [[maybe_unused]],
-                          const Vector &wi_local,
-                          const Material &material [[maybe_unused]]) const {
-  if (wi_local.z <= 0.f) {
+float LambertianBRDF::PDF(const Vector& wo_local [[maybe_unused]], const Vector& wi_local, const Material& material [[maybe_unused]]) const
+{
+  if (wi_local.z <= 0.f)
+  {
     return 0.f;
   }
 
   return wi_local.z / glm::pi<float>();
 }
 
-Vector MicrofacetBRDF::Sample(const Vector &wo_local,
-                              const Material &material) const {
+Vector MicrofacetBRDF::Sample(const Vector& wo_local, const Material& material) const
+{
   if (wo_local.z <= 0.0f)
     return Vector{0.0f};
 
   float roughness = glm::max(material.GetRoughness(), MIN_ROUGHNESS);
   float a = roughness * roughness;
 
-  Vector random{Random::RandomFloat(0.0f, 1.0f),
-                Random::RandomFloat(0.0f, 1.0f), 0.f};
+  Vector random{Random::RandomFloat(0.0f, 1.0f), Random::RandomFloat(0.0f, 1.0f), 0.f};
   float phi = 2.0f * glm::pi<float>() * random.x;
 
-  float cos_theta =
-      glm::sqrt((1.0f - random.y) / (1.0f + (a * a - 1.0f) * random.y));
+  float cos_theta = glm::sqrt((1.0f - random.y) / (1.0f + (a * a - 1.0f) * random.y));
   float sin_theta = glm::sqrt((1.0f - cos_theta * cos_theta));
 
-  Vector local_h{sin_theta * glm::cos(phi), sin_theta * glm::sin(phi),
-                 cos_theta};
+  Vector local_h{sin_theta * glm::cos(phi), sin_theta * glm::sin(phi), cos_theta};
   Vector wi_local = glm::reflect(-wo_local, local_h);
 
   if (wi_local.z <= 0.0f)
@@ -77,8 +74,8 @@ Vector MicrofacetBRDF::Sample(const Vector &wo_local,
   return wi_local;
 }
 
-RGB MicrofacetBRDF::Evaluate(const Vector &wo_local, const Vector &wi_local,
-                             const Material &material) const {
+RGB MicrofacetBRDF::Evaluate(const Vector& wo_local, const Vector& wi_local, const Material& material) const
+{
   float NoV = wo_local.z;
   float NoL = wi_local.z;
 
@@ -101,8 +98,8 @@ RGB MicrofacetBRDF::Evaluate(const Vector &wo_local, const Vector &wi_local,
   return (D * G * F) / (4.0f * NoV * NoL);
 }
 
-float MicrofacetBRDF::PDF(const Vector &wo_local, const Vector &wi_local,
-                          const Material &material) const {
+float MicrofacetBRDF::PDF(const Vector& wo_local, const Vector& wi_local, const Material& material) const
+{
   if (wo_local.z <= 0.0f || wi_local.z <= 0.0f)
     return 0.0f;
 
@@ -115,7 +112,8 @@ float MicrofacetBRDF::PDF(const Vector &wo_local, const Vector &wi_local,
   return glm::max(D * nh / (4.0f * voh), EPS_PDF);
 }
 
-float MicrofacetBRDF::G_Smith(float NoV, float NoL, float roughness) const {
+float MicrofacetBRDF::G_Smith(float NoV, float NoL, float roughness) const
+{
   float a = glm::max(roughness, MIN_ROUGHNESS);
   float k = a * 0.5;
   float nv = glm::clamp(NoV, EPS_COS, 1.0f);
@@ -125,11 +123,13 @@ float MicrofacetBRDF::G_Smith(float NoV, float NoL, float roughness) const {
   return G1V * G1L;
 }
 
-RGB MicrofacetBRDF::Fresnel_Schlick(float cosTheta, const RGB &F0) const {
+RGB MicrofacetBRDF::Fresnel_Schlick(float cosTheta, const RGB& F0) const
+{
   return F0 + (RGB{1.0f} - F0) * glm::pow(1.0f - cosTheta, 5.0f);
 }
 
-float MicrofacetBRDF::D_GGX(float NoH, float roughness) const {
+float MicrofacetBRDF::D_GGX(float NoH, float roughness) const
+{
   float a = glm::max(roughness, MIN_ROUGHNESS);
   float a2 = a * a;
   float nh = glm::clamp(NoH, 0.0f, 1.0f);

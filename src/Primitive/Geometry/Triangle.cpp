@@ -4,26 +4,26 @@
 #include "Ray/Intersection.hpp"
 #include "Ray/Ray.hpp"
 
-namespace VI {
+namespace VI
+{
 
-Triangle::Triangle(const Point &v1, const Point &v2, const Point &v3,
-                   const Vector &normal, bool back_face_culling)
-    : m_V1{v1}, m_V2{v2}, m_V3{v3}, m_Normal{normal},
-      m_BackFaceCulling{back_face_culling},
-      m_Area{0.5f * glm::length(glm::cross(m_V2 - m_V1, m_V3 - m_V1))} {
+Triangle::Triangle(const Point& v1, const Point& v2, const Point& v3, const Vector& normal, bool back_face_culling) : m_V1{v1}, m_V2{v2}, m_V3{v3}, m_Normal{normal}, m_BackFaceCulling{back_face_culling}, m_Area{0.5f * glm::length(glm::cross(m_V2 - m_V1, m_V3 - m_V1))}
+{
   m_BoundingBox = {.Min = v1, .Max = v1};
   m_BoundingBox.Update(v2);
   m_BoundingBox.Update(v3);
 }
 
-bool Triangle::Intersect(const Ray &r, Intersection &intersection) const {
+bool Triangle::Intersect(const Ray& r, Intersection& intersection) const
+{
   float tmin, tmax;
-  if (!m_BoundingBox.Intersect(r, tmin, tmax)) {
+  if (!m_BoundingBox.Intersect(r, tmin, tmax))
+  {
     return false;
   }
   const float par = glm::dot(m_Normal, r.Direction);
-  if ((m_BackFaceCulling && par > -EPSILON) ||
-      (!m_BackFaceCulling && glm::abs(par) < EPSILON)) {
+  if ((m_BackFaceCulling && par > -EPSILON) || (!m_BackFaceCulling && glm::abs(par) < EPSILON))
+  {
     return false;
   }
 
@@ -39,14 +39,16 @@ bool Triangle::Intersect(const Ray &r, Intersection &intersection) const {
   s = r.Origin - m_V1;
   u = ff * glm::dot(s, h);
 
-  if (u < 0.0 || u > 1.0) {
+  if (u < 0.0 || u > 1.0)
+  {
     return false;
   }
 
   q = glm::cross(s, edge1);
   v = ff * glm::dot(r.Direction, q);
 
-  if (v < 0.0 || u + v > 1.0) {
+  if (v < 0.0 || u + v > 1.0)
+  {
     return false;
   }
 
@@ -65,14 +67,24 @@ bool Triangle::Intersect(const Ray &r, Intersection &intersection) const {
   return true;
 }
 
-const BoundingBox &Triangle::GetBoundingBox() const { return m_BoundingBox; }
+const BoundingBox& Triangle::GetBoundingBox() const
+{
+  return m_BoundingBox;
+}
 
-std::tuple<Point, Point, Point> Triangle::GetVertices() const {
+std::tuple<Point, Point, Point> Triangle::GetVertices() const
+{
   return std::make_tuple(m_V1, m_V2, m_V3);
 }
 
-Vector Triangle::GetNormal() const noexcept { return m_Normal; }
+Vector Triangle::GetNormal() const noexcept
+{
+  return m_Normal;
+}
 
-float Triangle::GetArea() const noexcept { return m_Area; }
+float Triangle::GetArea() const noexcept
+{
+  return m_Area;
+}
 
 } // namespace VI

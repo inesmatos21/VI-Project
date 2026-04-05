@@ -3,8 +3,10 @@
 #include <atomic>
 #include <mutex>
 
-namespace VI {
-class ProgressBar final {
+namespace VI
+{
+class ProgressBar final
+{
 public:
   ProgressBar(int total, int bar_width = 50);
   void Increment(int n = 1);

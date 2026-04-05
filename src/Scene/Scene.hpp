@@ -10,35 +10,37 @@
 #include <memory>
 #include <span>
 
-namespace VI {
+namespace VI
+{
 
 struct Ray;
 struct Intersection;
 
-class Scene final {
+class Scene final
+{
 public:
   void Build();
 
-  bool Trace(const Ray &ray, Intersection &intersection) const;
+  bool Trace(const Ray& ray, Intersection& intersection) const;
 
   // Returns true if the path from ray origin to max_distance is unobstructed.
-  bool Visibility(const Ray &ray, float max_distance) const;
+  bool Visibility(const Ray& ray, float max_distance) const;
 
   void AddPrimitive(Geometry primitive, int material_index);
 
-  int AddMaterial(MaterialDesc &&desc);
+  int AddMaterial(MaterialDesc&& desc);
 
   void AddLight(std::unique_ptr<Light> light);
 
-  const Primitive &GetPrimitive(int primitive_index) const;
+  const Primitive& GetPrimitive(int primitive_index) const;
 
-  const Material &GetMaterial(int material_index) const;
+  const Material& GetMaterial(int material_index) const;
 
   std::span<const std::unique_ptr<Light>> GetLights() const;
 
   size_t GetPrimitiveCount() const;
 
-  const LightSamplingDistribution &GetLightSamplingDistribution() const;
+  const LightSamplingDistribution& GetLightSamplingDistribution() const;
 
   BoundingBox ComputeBoundingBox() const;
 

@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <memory_resource>
 
-namespace VI {
+namespace VI
+{
 using Allocator = std::pmr::polymorphic_allocator<std::byte>;
 }

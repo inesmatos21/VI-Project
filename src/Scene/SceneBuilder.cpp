@@ -4,12 +4,13 @@
 #include "Primitive/Geometry/Sphere.hpp"
 #include "Scene/Scene.hpp"
 
-namespace VI {
-Scene SphereScene() {
+namespace VI
+{
+Scene SphereScene()
+{
   Scene scene{};
 
-  const int red_mat =
-      scene.AddMaterial({.Name = "Red Material", .Albedo = {1.0f, 0.0f, 0.0f}});
+  const int red_mat = scene.AddMaterial({.Name = "Red Material", .Albedo = {1.0f, 0.0f, 0.0f}});
 
   Sphere sphere{Point{0.0f, 0.0f, 3.0f}, 0.8f};
   scene.AddPrimitive(sphere, red_mat);
@@ -25,133 +26,72 @@ Scene SphereScene() {
   return scene;
 }
 
-Scene WhittedCornellBox() {
+Scene WhittedCornellBox()
+{
   Scene scene;
 
-  const int white_mat =
-      scene.AddMaterial({.Name = "White", .Albedo = {0.75f, 0.75f, 0.75f}});
-  const int red_mat =
-      scene.AddMaterial({.Name = "Red", .Albedo = {0.65f, 0.05f, 0.05f}});
-  const int green_mat =
-      scene.AddMaterial({.Name = "Green", .Albedo = {0.05f, 0.30f, 0.05f}});
-  const int black_mat =
-      scene.AddMaterial({.Name = "Black", .Albedo = {0.02f, 0.02f, 0.02f}});
-  const int blue_mat =
-      scene.AddMaterial({.Name = "Dark Navy", .Albedo = {0.0f, 0.0f, 1.0f}});
-  const int wood_mat =
-      scene.AddMaterial({.Name = "Wood", .Albedo = {0.52f, 0.30f, 0.10f}});
-  const int mirror_mat =
-      scene.AddMaterial({.Name = "Mirror", .Albedo = {1.f, 1.f, 1.f}, .Roughness = 0.f, .Metallic = 1.f});
+  const int white_mat = scene.AddMaterial({.Name = "White", .Albedo = {0.75f, 0.75f, 0.75f}});
+  const int red_mat = scene.AddMaterial({.Name = "Red", .Albedo = {0.65f, 0.05f, 0.05f}});
+  const int green_mat = scene.AddMaterial({.Name = "Green", .Albedo = {0.05f, 0.30f, 0.05f}});
+  const int black_mat = scene.AddMaterial({.Name = "Black", .Albedo = {0.02f, 0.02f, 0.02f}});
+  const int blue_mat = scene.AddMaterial({.Name = "Dark Navy", .Albedo = {0.0f, 0.0f, 1.0f}});
+  const int wood_mat = scene.AddMaterial({.Name = "Wood", .Albedo = {0.52f, 0.30f, 0.10f}});
+  const int mirror_mat = scene.AddMaterial({.Name = "Mirror", .Albedo = {1.f, 1.f, 1.f}, .Roughness = 0.f, .Metallic = 1.f});
 
   // Helper: generates all 12 triangles (6 faces) of an axis-aligned box
-  auto make_box = [](float x1, float y1, float z1, float x2, float y2,
-                     float z2) -> std::vector<Triangle> {
+  auto make_box = [](float x1, float y1, float z1, float x2, float y2, float z2) -> std::vector<Triangle>
+  {
     return {
         // Bottom (y=y1, normal down)
-        Triangle{Point{x1, y1, z1}, Point{x1, y1, z2}, Point{x2, y1, z2},
-                 Vector{0.f, -1.f, 0.f}},
-        Triangle{Point{x1, y1, z1}, Point{x2, y1, z2}, Point{x2, y1, z1},
-                 Vector{0.f, -1.f, 0.f}},
+        Triangle{Point{x1, y1, z1}, Point{x1, y1, z2}, Point{x2, y1, z2}, Vector{0.f, -1.f, 0.f}},
+        Triangle{Point{x1, y1, z1}, Point{x2, y1, z2}, Point{x2, y1, z1}, Vector{0.f, -1.f, 0.f}},
         // Top (y=y2, normal up)
-        Triangle{Point{x1, y2, z1}, Point{x2, y2, z1}, Point{x2, y2, z2},
-                 Vector{0.f, 1.f, 0.f}},
-        Triangle{Point{x1, y2, z1}, Point{x2, y2, z2}, Point{x1, y2, z2},
-                 Vector{0.f, 1.f, 0.f}},
+        Triangle{Point{x1, y2, z1}, Point{x2, y2, z1}, Point{x2, y2, z2}, Vector{0.f, 1.f, 0.f}},
+        Triangle{Point{x1, y2, z1}, Point{x2, y2, z2}, Point{x1, y2, z2}, Vector{0.f, 1.f, 0.f}},
         // Front (z=z1, normal toward camera)
-        Triangle{Point{x1, y1, z1}, Point{x2, y1, z1}, Point{x2, y2, z1},
-                 Vector{0.f, 0.f, -1.f}},
-        Triangle{Point{x1, y1, z1}, Point{x2, y2, z1}, Point{x1, y2, z1},
-                 Vector{0.f, 0.f, -1.f}},
+        Triangle{Point{x1, y1, z1}, Point{x2, y1, z1}, Point{x2, y2, z1}, Vector{0.f, 0.f, -1.f}},
+        Triangle{Point{x1, y1, z1}, Point{x2, y2, z1}, Point{x1, y2, z1}, Vector{0.f, 0.f, -1.f}},
         // Back (z=z2, normal away from camera)
-        Triangle{Point{x1, y1, z2}, Point{x1, y2, z2}, Point{x2, y2, z2},
-                 Vector{0.f, 0.f, 1.f}},
-        Triangle{Point{x1, y1, z2}, Point{x2, y2, z2}, Point{x2, y1, z2},
-                 Vector{0.f, 0.f, 1.f}},
+        Triangle{Point{x1, y1, z2}, Point{x1, y2, z2}, Point{x2, y2, z2}, Vector{0.f, 0.f, 1.f}},
+        Triangle{Point{x1, y1, z2}, Point{x2, y2, z2}, Point{x2, y1, z2}, Vector{0.f, 0.f, 1.f}},
         // Right face (x=x1, normal toward -X / green wall side)
-        Triangle{Point{x1, y1, z1}, Point{x1, y2, z1}, Point{x1, y2, z2},
-                 Vector{-1.f, 0.f, 0.f}},
-        Triangle{Point{x1, y1, z1}, Point{x1, y2, z2}, Point{x1, y1, z2},
-                 Vector{-1.f, 0.f, 0.f}},
+        Triangle{Point{x1, y1, z1}, Point{x1, y2, z1}, Point{x1, y2, z2}, Vector{-1.f, 0.f, 0.f}},
+        Triangle{Point{x1, y1, z1}, Point{x1, y2, z2}, Point{x1, y1, z2}, Vector{-1.f, 0.f, 0.f}},
         // Left face (x=x2, normal toward +X / red wall side)
-        Triangle{Point{x2, y1, z1}, Point{x2, y1, z2}, Point{x2, y2, z2},
-                 Vector{1.f, 0.f, 0.f}},
-        Triangle{Point{x2, y1, z1}, Point{x2, y2, z2}, Point{x2, y2, z1},
-                 Vector{1.f, 0.f, 0.f}},
+        Triangle{Point{x2, y1, z1}, Point{x2, y1, z2}, Point{x2, y2, z2}, Vector{1.f, 0.f, 0.f}},
+        Triangle{Point{x2, y1, z1}, Point{x2, y2, z2}, Point{x2, y2, z1}, Vector{1.f, 0.f, 0.f}},
     };
   };
 
   // Floor
-  scene.AddPrimitive(
-      Mesh{"Floor",
-           std::vector<Triangle>{
-               Triangle{Point{552.8f, 0.f, 0.f}, Point{-100.f, 0.f, 0.f},
-                        Point{-100.f, 0.f, 859.2f}, Vector{0.f, 1.f, 0.f}},
-               Triangle{Point{549.6f, 0.f, 859.2f}, Point{552.8f, 0.f, 0.f},
-                        Point{-100.f, 0.f, 859.2f}, Vector{0.f, 1.f, 0.f}}}},
-      white_mat);
+  scene.AddPrimitive(Mesh{"Floor", std::vector<Triangle>{Triangle{Point{552.8f, 0.f, 0.f}, Point{-100.f, 0.f, 0.f}, Point{-100.f, 0.f, 859.2f}, Vector{0.f, 1.f, 0.f}}, Triangle{Point{549.6f, 0.f, 859.2f}, Point{552.8f, 0.f, 0.f}, Point{-100.f, 0.f, 859.2f}, Vector{0.f, 1.f, 0.f}}}}, white_mat);
 
   // Ceiling (dark/black)
   scene.AddPrimitive(
-      Mesh{
-          "Ceiling",
-          std::vector<Triangle>{
-              Triangle{Point{556.f, 548.8f, 0.f}, Point{-100.f, 548.8f, 0.f},
-                       Point{-100.f, 548.8f, 459.2f}, Vector{0.f, -1.f, 0.f}},
-              Triangle{Point{556.f, 548.8f, 459.2f}, Point{556.f, 548.8f, 0.f},
-                       Point{-100.f, 548.8f, 459.2f}, Vector{0.f, -1.f, 0.f}}}},
-      black_mat);
+      Mesh{"Ceiling", std::vector<Triangle>{Triangle{Point{556.f, 548.8f, 0.f}, Point{-100.f, 548.8f, 0.f}, Point{-100.f, 548.8f, 459.2f}, Vector{0.f, -1.f, 0.f}}, Triangle{Point{556.f, 548.8f, 459.2f}, Point{556.f, 548.8f, 0.f}, Point{-100.f, 548.8f, 459.2f}, Vector{0.f, -1.f, 0.f}}}}, black_mat);
 
   // Back wall
   scene.AddPrimitive(
-      Mesh{"Back Wall",
-           std::vector<Triangle>{
-               Triangle{Point{-100.f, 0.f, 459.2f}, Point{549.6f, 0.f, 459.2f},
-                        Point{556.f, 548.8f, 459.2f}, Vector{0.f, 0.f, -1.f}},
-               Triangle{Point{-100.f, 0.f, 459.2f},
-                        Point{-100.f, 548.8f, 459.2f},
-                        Point{556.f, 548.8f, 459.2f}, Vector{0.f, 0.f, -1.f}}}},
+      Mesh{"Back Wall", std::vector<Triangle>{Triangle{Point{-100.f, 0.f, 459.2f}, Point{549.6f, 0.f, 459.2f}, Point{556.f, 548.8f, 459.2f}, Vector{0.f, 0.f, -1.f}}, Triangle{Point{-100.f, 0.f, 459.2f}, Point{-100.f, 548.8f, 459.2f}, Point{556.f, 548.8f, 459.2f}, Vector{0.f, 0.f, -1.f}}}},
       white_mat);
 
   // Right wall (green)
-  scene.AddPrimitive(
-      Mesh{"Right Wall",
-           std::vector<Triangle>{
-               Triangle{Point{-100.f, 0.f, 0.f}, Point{-100.f, 0.f, 459.2f},
-                        Point{-100.f, 548.8f, 459.2f}, Vector{1.f, 0.f, 0.f}},
-               Triangle{Point{-100.f, 0.f, 0.f}, Point{-100.f, 548.8f, 0.f},
-                        Point{-100.f, 548.8f, 459.2f}, Vector{1.f, 0.f, 0.f}}}},
-      green_mat);
+  scene.AddPrimitive(Mesh{"Right Wall", std::vector<Triangle>{Triangle{Point{-100.f, 0.f, 0.f}, Point{-100.f, 0.f, 459.2f}, Point{-100.f, 548.8f, 459.2f}, Vector{1.f, 0.f, 0.f}}, Triangle{Point{-100.f, 0.f, 0.f}, Point{-100.f, 548.8f, 0.f}, Point{-100.f, 548.8f, 459.2f}, Vector{1.f, 0.f, 0.f}}}},
+                     green_mat);
 
   // Left wall (red)
-  scene.AddPrimitive(
-      Mesh{
-          "Left Wall",
-          std::vector<Triangle>{
-              Triangle{Point{552.8f, 0.f, 0.f}, Point{549.6f, 0.f, 459.2f},
-                       Point{549.6f, 548.8f, 459.2f}, Vector{-1.f, 0.f, 0.f}},
-              Triangle{Point{552.8f, 0.f, 0.f}, Point{552.8f, 548.8f, 0.f},
-                       Point{549.6f, 548.8f, 459.2f}, Vector{-1.f, 0.f, 0.f}}}},
-      red_mat);
+  scene.AddPrimitive(Mesh{"Left Wall", std::vector<Triangle>{Triangle{Point{552.8f, 0.f, 0.f}, Point{549.6f, 0.f, 459.2f}, Point{549.6f, 548.8f, 459.2f}, Vector{-1.f, 0.f, 0.f}}, Triangle{Point{552.8f, 0.f, 0.f}, Point{552.8f, 548.8f, 0.f}, Point{549.6f, 548.8f, 459.2f}, Vector{-1.f, 0.f, 0.f}}}},
+                     red_mat);
 
   // Mirror plane on left wall (roughness=0, facing into the room)
-  scene.AddPrimitive(
-      Mesh{"Mirror Plane",
-           std::vector<Triangle>{
-               Triangle{Point{540.f, 50.f, 50.f}, Point{540.f, 50.f, 409.f},
-                        Point{540.f, 488.f, 409.f}, Vector{-1.f, 0.f, 0.f}},
-               Triangle{Point{540.f, 50.f, 50.f}, Point{540.f, 488.f, 409.f},
-                        Point{540.f, 488.f, 50.f}, Vector{-1.f, 0.f, 0.f}}}},
-      mirror_mat);
+  scene.AddPrimitive(Mesh{"Mirror Plane", std::vector<Triangle>{Triangle{Point{540.f, 50.f, 50.f}, Point{540.f, 50.f, 409.f}, Point{540.f, 488.f, 409.f}, Vector{-1.f, 0.f, 0.f}}, Triangle{Point{540.f, 50.f, 50.f}, Point{540.f, 488.f, 409.f}, Point{540.f, 488.f, 50.f}, Vector{-1.f, 0.f, 0.f}}}},
+                     mirror_mat);
 
   // Dark navy box 1 (left-center of scene)
-  scene.AddPrimitive(
-      Mesh{"Dark Box 1", make_box(310.f, 0.f, 220.f, 440.f, 320.f, 345.f)},
-      blue_mat);
+  scene.AddPrimitive(Mesh{"Dark Box 1", make_box(310.f, 0.f, 220.f, 440.f, 320.f, 345.f)}, blue_mat);
 
   // Wooden box (right-center, closer to camera)
-  scene.AddPrimitive(
-      Mesh{"Wooden Box", make_box(45.f, 0.f, 60.f, 200.f, 195.f, 215.f)},
-      wood_mat);
+  scene.AddPrimitive(Mesh{"Wooden Box", make_box(45.f, 0.f, 60.f, 200.f, 195.f, 215.f)}, wood_mat);
 
   // Metallic sphere resting on top of the wooden box
   scene.AddPrimitive(Sphere{Point{122.f, 285.f, 137.f}, 90.f}, mirror_mat);
@@ -159,153 +99,133 @@ Scene WhittedCornellBox() {
   return scene;
 }
 
-Scene CreateCornellBox() {
+Scene CreateCornellBox()
+{
   Scene scene;
 
-  const int white_mat = scene.AddMaterial(
-      {.Name = "White Material", .Albedo = {0.8f, 0.8f, 0.8f}});
-  const int red_mat =
-      scene.AddMaterial({.Name = "Red Material", .Albedo = {0.5f, 0.1f, 0.1f}});
-  const int green_mat =
-      scene.AddMaterial({.Name = "Green Material", .Albedo = {0.f, 0.6f, 0.f}});
-  const int blue_mat =
-      scene.AddMaterial({.Name = "Blue Material", .Albedo = {0.f, 0.f, 0.6f}});
-  const int orange_mat = scene.AddMaterial(
-      {.Name = "Orange Material", .Albedo = {0.66f, 0.44f, 0.f}});
-  const int mirror_mat = scene.AddMaterial({.Name = "Mirror Material",
-                                            .Albedo = {1.f, 1.f, 1.f},
-                                            .Roughness = 0.f,
-                                            .Metallic = 1.f});
+  const int white_mat = scene.AddMaterial({.Name = "White Material", .Albedo = {0.8f, 0.8f, 0.8f}});
+  const int red_mat = scene.AddMaterial({.Name = "Red Material", .Albedo = {0.5f, 0.1f, 0.1f}});
+  const int green_mat = scene.AddMaterial({.Name = "Green Material", .Albedo = {0.f, 0.6f, 0.f}});
+  const int blue_mat = scene.AddMaterial({.Name = "Blue Material", .Albedo = {0.f, 0.f, 0.6f}});
+  const int orange_mat = scene.AddMaterial({.Name = "Orange Material", .Albedo = {0.66f, 0.44f, 0.f}});
+  const int mirror_mat = scene.AddMaterial({.Name = "Mirror Material", .Albedo = {1.f, 1.f, 1.f}, .Roughness = 0.f, .Metallic = 1.f});
 
-  const int light_mat = scene.AddMaterial({.Name = "Light",
-                                           .Albedo = {1.f, 1.f, 1.f},
-                                           .EmissionColor = {1.f, 1.f, 1.f},
-                                           .EmissionPower = 20.f});
+  const int light_mat = scene.AddMaterial({.Name = "Light", .Albedo = {1.f, 1.f, 1.f}, .EmissionColor = {1.f, 1.f, 1.f}, .EmissionPower = 20.f});
 
   // Area Light (on the ceiling)
   {
     float y = 548.7f; // Slightly below the ceiling
-    scene.AddPrimitive(Mesh{"Ceiling Light",
-                            std::vector<Triangle>{Triangle{
-                                                      Point{158.0f, y, 160.0f},
-                                                      Point{298.0f, y, 160.0f},
-                                                      Point{298.0f, y, 300.0f},
-                                                      Vector{0.0f, -1.0f, 0.0f},
-                                                  },
-                                                  Triangle{
-                                                      Point{158.0f, y, 160.0f},
-                                                      Point{298.0f, y, 300.0f},
-                                                      Point{158.0f, y, 300.0f},
-                                                      Vector{0.0f, -1.0f, 0.0f},
-                                                  }}},
+    scene.AddPrimitive(Mesh{"Ceiling Light", std::vector<Triangle>{Triangle{
+                                                                       Point{158.0f, y, 160.0f},
+                                                                       Point{298.0f, y, 160.0f},
+                                                                       Point{298.0f, y, 300.0f},
+                                                                       Vector{0.0f, -1.0f, 0.0f},
+                                                                   },
+                                                                   Triangle{
+                                                                       Point{158.0f, y, 160.0f},
+                                                                       Point{298.0f, y, 300.0f},
+                                                                       Point{158.0f, y, 300.0f},
+                                                                       Vector{0.0f, -1.0f, 0.0f},
+                                                                   }}},
                        light_mat);
   }
 
   // Floor
   {
-    scene.AddPrimitive(
-        Mesh{"Floor",
-             std::vector<Triangle>{
-                 Triangle{
-                     Point{552.8, 0.0, 0.0},
-                     Point{-100.0, 0.0, 0.0},
-                     Point{-100.0, 0.0, 859.2},
-                     Vector{0.0, 1.0, 0.0}, // normal for all three vertices
-                 },
-                 Triangle{
-                     Point{549.6, 0.0, 859.2},
-                     Point{552.8, 0.0, 0.0},
-                     Point{-100.0, 0.0, 859.2},
-                     Vector{0.0, 1.0, 0.0},
-                 }}},
-        white_mat);
+    scene.AddPrimitive(Mesh{"Floor", std::vector<Triangle>{Triangle{
+                                                               Point{552.8, 0.0, 0.0},
+                                                               Point{-100.0, 0.0, 0.0},
+                                                               Point{-100.0, 0.0, 859.2},
+                                                               Vector{0.0, 1.0, 0.0}, // normal for all three vertices
+                                                           },
+                                                           Triangle{
+                                                               Point{549.6, 0.0, 859.2},
+                                                               Point{552.8, 0.0, 0.0},
+                                                               Point{-100.0, 0.0, 859.2},
+                                                               Vector{0.0, 1.0, 0.0},
+                                                           }}},
+                       white_mat);
   }
   // Ceiling
   {
-    scene.AddPrimitive(
-        Mesh{"Ceiling", std::vector<Triangle>{Triangle{
-                                                  Point{556.0, 548.8, 0.0},
-                                                  Point{-100.0, 548.8, 0.0},
-                                                  Point{-100.0, 548.8, 459.2},
-                                                  Vector{0.0, -1.0, 0.0},
-                                              },
-                                              Triangle{
-                                                  Point{556.0, 548.8, 459.2},
-                                                  Point{556.0, 548.8, 0.0},
-                                                  Point{-100.0, 548.8, 459.2},
-                                                  Vector{0.0, -1.0, 0.0},
-                                              }}},
-        white_mat);
+    scene.AddPrimitive(Mesh{"Ceiling", std::vector<Triangle>{Triangle{
+                                                                 Point{556.0, 548.8, 0.0},
+                                                                 Point{-100.0, 548.8, 0.0},
+                                                                 Point{-100.0, 548.8, 459.2},
+                                                                 Vector{0.0, -1.0, 0.0},
+                                                             },
+                                                             Triangle{
+                                                                 Point{556.0, 548.8, 459.2},
+                                                                 Point{556.0, 548.8, 0.0},
+                                                                 Point{-100.0, 548.8, 459.2},
+                                                                 Vector{0.0, -1.0, 0.0},
+                                                             }}},
+                       white_mat);
   }
   // Back wall
   {
-    scene.AddPrimitive(
-        Mesh{"Back Wall", std::vector<Triangle>{Triangle{
-                                                    Point{-100.0, 0.0, 459.2},
-                                                    Point{549.6, 0.0, 459.2},
-                                                    Point{556.0, 548.8, 459.2},
-                                                    Vector{0.0, 0.0, -1.0},
-                                                },
-                                                Triangle{
-                                                    Point{-100.0, 0.0, 459.2},
-                                                    Point{-100.0, 548.8, 459.2},
-                                                    Point{556.0, 548.8, 459.2},
-                                                    Vector{0.0, 0.0, -1.0},
-                                                }}},
-        white_mat);
+    scene.AddPrimitive(Mesh{"Back Wall", std::vector<Triangle>{Triangle{
+                                                                   Point{-100.0, 0.0, 459.2},
+                                                                   Point{549.6, 0.0, 459.2},
+                                                                   Point{556.0, 548.8, 459.2},
+                                                                   Vector{0.0, 0.0, -1.0},
+                                                               },
+                                                               Triangle{
+                                                                   Point{-100.0, 0.0, 459.2},
+                                                                   Point{-100.0, 548.8, 459.2},
+                                                                   Point{556.0, 548.8, 459.2},
+                                                                   Vector{0.0, 0.0, -1.0},
+                                                               }}},
+                       white_mat);
   }
   // Right Wall
   {
-    scene.AddPrimitive(
-        Mesh{"Right Wall",
-             std::vector<Triangle>{Triangle{
-                                       Point{-100.0, 0.0, 0.0},
-                                       Point{-100.0, 0.0, 459.2},
-                                       Point{-100.0, 548.8, 459.2},
-                                       Vector{1.0, 0.0, 0.0},
-                                   },
-                                   Triangle{
-                                       Point{-100.0, 0.0, 0.0},
-                                       Point{-100.0, 548.8, 0.0},
-                                       Point{-100.0, 548.8, 459.2},
-                                       Vector{1.0, 0.0, 0.0},
-                                   }}},
-        green_mat);
+    scene.AddPrimitive(Mesh{"Right Wall", std::vector<Triangle>{Triangle{
+                                                                    Point{-100.0, 0.0, 0.0},
+                                                                    Point{-100.0, 0.0, 459.2},
+                                                                    Point{-100.0, 548.8, 459.2},
+                                                                    Vector{1.0, 0.0, 0.0},
+                                                                },
+                                                                Triangle{
+                                                                    Point{-100.0, 0.0, 0.0},
+                                                                    Point{-100.0, 548.8, 0.0},
+                                                                    Point{-100.0, 548.8, 459.2},
+                                                                    Vector{1.0, 0.0, 0.0},
+                                                                }}},
+                       green_mat);
   }
 
   { // Left Wall Mirror
-    scene.AddPrimitive(Mesh{"Right Wall Mirror",
-                            std::vector<Triangle>{Triangle{
-                                                      Point{540, 50.0, 50.0},
-                                                      Point{540, 50.0, 509.2},
-                                                      Point{540, 488.8, 509.2},
-                                                      Vector{-1.0, 0.0, 0.0},
-                                                  },
-                                                  Triangle{
-                                                      Point{540, 50.0, 50.},
-                                                      Point{540, 488.8, 50.},
-                                                      Point{540, 488.8, 509.2},
-                                                      Vector{-1.0, 0.0, 0.0},
-                                                  }}},
+    scene.AddPrimitive(Mesh{"Right Wall Mirror", std::vector<Triangle>{Triangle{
+                                                                           Point{540, 50.0, 50.0},
+                                                                           Point{540, 50.0, 509.2},
+                                                                           Point{540, 488.8, 509.2},
+                                                                           Vector{-1.0, 0.0, 0.0},
+                                                                       },
+                                                                       Triangle{
+                                                                           Point{540, 50.0, 50.},
+                                                                           Point{540, 488.8, 50.},
+                                                                           Point{540, 488.8, 509.2},
+                                                                           Vector{-1.0, 0.0, 0.0},
+                                                                       }}},
                        mirror_mat);
   }
 
   // Left Wall
   {
-    scene.AddPrimitive(
-        Mesh{"Left Wall", std::vector<Triangle>{Triangle{
-                                                    Point{552.8, 0.0, 0.0},
-                                                    Point{549.6, 0.0, 459.2},
-                                                    Point{549.6, 548.8, 459.2},
-                                                    Vector{-1.0, 0.0, 0.0},
-                                                },
-                                                Triangle{
-                                                    Point{552.8, 0.0, 0.0},
-                                                    Point{552.8, 548.8, 0.0},
-                                                    Point{549.6, 548.8, 459.2},
-                                                    Vector{-1.0, 0.0, 0.0},
-                                                }}},
-        red_mat);
+    scene.AddPrimitive(Mesh{"Left Wall", std::vector<Triangle>{Triangle{
+                                                                   Point{552.8, 0.0, 0.0},
+                                                                   Point{549.6, 0.0, 459.2},
+                                                                   Point{549.6, 548.8, 459.2},
+                                                                   Vector{-1.0, 0.0, 0.0},
+                                                               },
+                                                               Triangle{
+                                                                   Point{552.8, 0.0, 0.0},
+                                                                   Point{552.8, 548.8, 0.0},
+                                                                   Point{549.6, 548.8, 459.2},
+                                                                   Vector{-1.0, 0.0, 0.0},
+                                                               }}},
+                       red_mat);
   }
   // short block
   {
@@ -482,23 +402,16 @@ Scene CreateCornellBox() {
   return scene;
 }
 
-Scene CreateImportanceSamplingCornellBox() {
+Scene CreateImportanceSamplingCornellBox()
+{
   Scene scene;
 
-  const int white_mat = scene.AddMaterial(
-      {.Name = "White Material", .Albedo = {0.8f, 0.8f, 0.8f}});
-  const int red_mat =
-      scene.AddMaterial({.Name = "Red Material", .Albedo = {0.5f, 0.1f, 0.1f}});
-  const int green_mat =
-      scene.AddMaterial({.Name = "Green Material", .Albedo = {0.f, 0.6f, 0.f}});
-  const int blue_mat =
-      scene.AddMaterial({.Name = "Blue Material", .Albedo = {0.f, 0.f, 0.6f}});
-  const int orange_mat = scene.AddMaterial(
-      {.Name = "Orange Material", .Albedo = {0.66f, 0.44f, 0.f}});
-  const int mirror_mat = scene.AddMaterial({.Name = "Mirror Material",
-                                            .Albedo = {1.f, 1.f, 1.f},
-                                            .Roughness = 0.f,
-                                            .Metallic = 1.f});
+  const int white_mat = scene.AddMaterial({.Name = "White Material", .Albedo = {0.8f, 0.8f, 0.8f}});
+  const int red_mat = scene.AddMaterial({.Name = "Red Material", .Albedo = {0.5f, 0.1f, 0.1f}});
+  const int green_mat = scene.AddMaterial({.Name = "Green Material", .Albedo = {0.f, 0.6f, 0.f}});
+  const int blue_mat = scene.AddMaterial({.Name = "Blue Material", .Albedo = {0.f, 0.f, 0.6f}});
+  const int orange_mat = scene.AddMaterial({.Name = "Orange Material", .Albedo = {0.66f, 0.44f, 0.f}});
+  const int mirror_mat = scene.AddMaterial({.Name = "Mirror Material", .Albedo = {1.f, 1.f, 1.f}, .Roughness = 0.f, .Metallic = 1.f});
 
   const int dominant_light_mat = scene.AddMaterial({
       .Name = "Dominant Light",
@@ -525,8 +438,8 @@ Scene CreateImportanceSamplingCornellBox() {
       .EmissionPower = 2.f,
   });
 
-  auto add_area_light = [&scene](std::string_view name, int material_index,
-                                 float x0, float x1, float z0, float z1) {
+  auto add_area_light = [&scene](std::string_view name, int material_index, float x0, float x1, float z0, float z1)
+  {
     constexpr float y = 548.7f;
     scene.AddPrimitive(Mesh{std::string{name},
                             std::vector<Triangle>{
@@ -548,120 +461,107 @@ Scene CreateImportanceSamplingCornellBox() {
 
   // Spread the emitters across the ceiling so the sampling difference is more
   // visible spatially than with a tight 2x2 cluster.
-  add_area_light("Ceiling Light Dominant", dominant_light_mat, 70.0f, 140.0f,
-                 60.0f, 130.0f);
-  add_area_light("Ceiling Light Weak 1", weak_light_1_mat, 320.0f, 390.0f,
-                 70.0f, 140.0f);
-  add_area_light("Ceiling Light Weak 2", weak_light_2_mat, 80.0f, 150.0f,
-                 280.0f, 350.0f);
-  add_area_light("Ceiling Light Weak 3", weak_light_3_mat, 330.0f, 400.0f,
-                 290.0f, 360.0f);
+  add_area_light("Ceiling Light Dominant", dominant_light_mat, 70.0f, 140.0f, 60.0f, 130.0f);
+  add_area_light("Ceiling Light Weak 1", weak_light_1_mat, 320.0f, 390.0f, 70.0f, 140.0f);
+  add_area_light("Ceiling Light Weak 2", weak_light_2_mat, 80.0f, 150.0f, 280.0f, 350.0f);
+  add_area_light("Ceiling Light Weak 3", weak_light_3_mat, 330.0f, 400.0f, 290.0f, 360.0f);
 
   // Floor
   {
-    scene.AddPrimitive(
-        Mesh{"Floor",
-             std::vector<Triangle>{
-                 Triangle{
-                     Point{552.8, 0.0, 0.0},
-                     Point{-100.0, 0.0, 0.0},
-                     Point{-100.0, 0.0, 859.2},
-                     Vector{0.0, 1.0, 0.0},
-                 },
-                 Triangle{
-                     Point{549.6, 0.0, 859.2},
-                     Point{552.8, 0.0, 0.0},
-                     Point{-100.0, 0.0, 859.2},
-                     Vector{0.0, 1.0, 0.0},
-                 }}},
-        white_mat);
+    scene.AddPrimitive(Mesh{"Floor", std::vector<Triangle>{Triangle{
+                                                               Point{552.8, 0.0, 0.0},
+                                                               Point{-100.0, 0.0, 0.0},
+                                                               Point{-100.0, 0.0, 859.2},
+                                                               Vector{0.0, 1.0, 0.0},
+                                                           },
+                                                           Triangle{
+                                                               Point{549.6, 0.0, 859.2},
+                                                               Point{552.8, 0.0, 0.0},
+                                                               Point{-100.0, 0.0, 859.2},
+                                                               Vector{0.0, 1.0, 0.0},
+                                                           }}},
+                       white_mat);
   }
   // Ceiling
   {
-    scene.AddPrimitive(
-        Mesh{"Ceiling", std::vector<Triangle>{Triangle{
-                                                  Point{556.0, 548.8, 0.0},
-                                                  Point{-100.0, 548.8, 0.0},
-                                                  Point{-100.0, 548.8, 459.2},
-                                                  Vector{0.0, -1.0, 0.0},
-                                              },
-                                              Triangle{
-                                                  Point{556.0, 548.8, 459.2},
-                                                  Point{556.0, 548.8, 0.0},
-                                                  Point{-100.0, 548.8, 459.2},
-                                                  Vector{0.0, -1.0, 0.0},
-                                              }}},
-        white_mat);
+    scene.AddPrimitive(Mesh{"Ceiling", std::vector<Triangle>{Triangle{
+                                                                 Point{556.0, 548.8, 0.0},
+                                                                 Point{-100.0, 548.8, 0.0},
+                                                                 Point{-100.0, 548.8, 459.2},
+                                                                 Vector{0.0, -1.0, 0.0},
+                                                             },
+                                                             Triangle{
+                                                                 Point{556.0, 548.8, 459.2},
+                                                                 Point{556.0, 548.8, 0.0},
+                                                                 Point{-100.0, 548.8, 459.2},
+                                                                 Vector{0.0, -1.0, 0.0},
+                                                             }}},
+                       white_mat);
   }
   // Back wall
   {
-    scene.AddPrimitive(
-        Mesh{"Back Wall", std::vector<Triangle>{Triangle{
-                                                    Point{-100.0, 0.0, 459.2},
-                                                    Point{549.6, 0.0, 459.2},
-                                                    Point{556.0, 548.8, 459.2},
-                                                    Vector{0.0, 0.0, -1.0},
-                                                },
-                                                Triangle{
-                                                    Point{-100.0, 0.0, 459.2},
-                                                    Point{-100.0, 548.8, 459.2},
-                                                    Point{556.0, 548.8, 459.2},
-                                                    Vector{0.0, 0.0, -1.0},
-                                                }}},
-        white_mat);
+    scene.AddPrimitive(Mesh{"Back Wall", std::vector<Triangle>{Triangle{
+                                                                   Point{-100.0, 0.0, 459.2},
+                                                                   Point{549.6, 0.0, 459.2},
+                                                                   Point{556.0, 548.8, 459.2},
+                                                                   Vector{0.0, 0.0, -1.0},
+                                                               },
+                                                               Triangle{
+                                                                   Point{-100.0, 0.0, 459.2},
+                                                                   Point{-100.0, 548.8, 459.2},
+                                                                   Point{556.0, 548.8, 459.2},
+                                                                   Vector{0.0, 0.0, -1.0},
+                                                               }}},
+                       white_mat);
   }
   // Right Wall
   {
-    scene.AddPrimitive(
-        Mesh{"Right Wall",
-             std::vector<Triangle>{Triangle{
-                                       Point{-100.0, 0.0, 0.0},
-                                       Point{-100.0, 0.0, 459.2},
-                                       Point{-100.0, 548.8, 459.2},
-                                       Vector{1.0, 0.0, 0.0},
-                                   },
-                                   Triangle{
-                                       Point{-100.0, 0.0, 0.0},
-                                       Point{-100.0, 548.8, 0.0},
-                                       Point{-100.0, 548.8, 459.2},
-                                       Vector{1.0, 0.0, 0.0},
-                                   }}},
-        green_mat);
+    scene.AddPrimitive(Mesh{"Right Wall", std::vector<Triangle>{Triangle{
+                                                                    Point{-100.0, 0.0, 0.0},
+                                                                    Point{-100.0, 0.0, 459.2},
+                                                                    Point{-100.0, 548.8, 459.2},
+                                                                    Vector{1.0, 0.0, 0.0},
+                                                                },
+                                                                Triangle{
+                                                                    Point{-100.0, 0.0, 0.0},
+                                                                    Point{-100.0, 548.8, 0.0},
+                                                                    Point{-100.0, 548.8, 459.2},
+                                                                    Vector{1.0, 0.0, 0.0},
+                                                                }}},
+                       green_mat);
   }
 
   { // Left Wall Mirror
-    scene.AddPrimitive(Mesh{"Right Wall Mirror",
-                            std::vector<Triangle>{Triangle{
-                                                      Point{540, 50.0, 50.0},
-                                                      Point{540, 50.0, 509.2},
-                                                      Point{540, 488.8, 509.2},
-                                                      Vector{-1.0, 0.0, 0.0},
-                                                  },
-                                                  Triangle{
-                                                      Point{540, 50.0, 50.},
-                                                      Point{540, 488.8, 50.},
-                                                      Point{540, 488.8, 509.2},
-                                                      Vector{-1.0, 0.0, 0.0},
-                                                  }}},
+    scene.AddPrimitive(Mesh{"Right Wall Mirror", std::vector<Triangle>{Triangle{
+                                                                           Point{540, 50.0, 50.0},
+                                                                           Point{540, 50.0, 509.2},
+                                                                           Point{540, 488.8, 509.2},
+                                                                           Vector{-1.0, 0.0, 0.0},
+                                                                       },
+                                                                       Triangle{
+                                                                           Point{540, 50.0, 50.},
+                                                                           Point{540, 488.8, 50.},
+                                                                           Point{540, 488.8, 509.2},
+                                                                           Vector{-1.0, 0.0, 0.0},
+                                                                       }}},
                        mirror_mat);
   }
 
   // Left Wall
   {
-    scene.AddPrimitive(
-        Mesh{"Left Wall", std::vector<Triangle>{Triangle{
-                                                    Point{552.8, 0.0, 0.0},
-                                                    Point{549.6, 0.0, 459.2},
-                                                    Point{549.6, 548.8, 459.2},
-                                                    Vector{-1.0, 0.0, 0.0},
-                                                },
-                                                Triangle{
-                                                    Point{552.8, 0.0, 0.0},
-                                                    Point{552.8, 548.8, 0.0},
-                                                    Point{549.6, 548.8, 459.2},
-                                                    Vector{-1.0, 0.0, 0.0},
-                                                }}},
-        red_mat);
+    scene.AddPrimitive(Mesh{"Left Wall", std::vector<Triangle>{Triangle{
+                                                                   Point{552.8, 0.0, 0.0},
+                                                                   Point{549.6, 0.0, 459.2},
+                                                                   Point{549.6, 548.8, 459.2},
+                                                                   Vector{-1.0, 0.0, 0.0},
+                                                               },
+                                                               Triangle{
+                                                                   Point{552.8, 0.0, 0.0},
+                                                                   Point{552.8, 548.8, 0.0},
+                                                                   Point{549.6, 548.8, 459.2},
+                                                                   Vector{-1.0, 0.0, 0.0},
+                                                               }}},
+                       red_mat);
   }
   // short block
   {
@@ -840,20 +740,17 @@ Scene CreateImportanceSamplingCornellBox() {
 //   Y: down → up      [0 .. 350]
 //   Z: front → back   [0 .. 550]
 // Camera: Eye=(275, 220, -300), At=(275, 0, 300)
-Scene CreateVeachScene() {
+Scene CreateVeachScene()
+{
   Scene scene;
 
   // ── Materials ──────────────────────────────────────────────────────────────
-  const int floor_mat = scene.AddMaterial(
-      {.Name = "Floor", .Albedo = {0.5f, 0.5f, 0.5f}, .Roughness = 1.f});
+  const int floor_mat = scene.AddMaterial({.Name = "Floor", .Albedo = {0.5f, 0.5f, 0.5f}, .Roughness = 1.f});
 
   // Three reflective bands from sharp to broad reflections.
-  const int plate1_mat = scene.AddMaterial(
-      {.Name = "Plate Mirror-Like", .Albedo = {0.92f, 0.92f, 0.92f}, .Roughness = 0.02f, .Metallic = 1.f});
-  const int plate2_mat = scene.AddMaterial(
-      {.Name = "Plate Glossy", .Albedo = {0.9f, 0.9f, 0.9f}, .Roughness = 0.08f, .Metallic = 1.f});
-  const int plate3_mat = scene.AddMaterial(
-      {.Name = "Plate Broad Gloss", .Albedo = {0.82f, 0.82f, 0.82f}, .Roughness = 0.28f, .Metallic = 1.f});
+  const int plate1_mat = scene.AddMaterial({.Name = "Plate Mirror-Like", .Albedo = {0.92f, 0.92f, 0.92f}, .Roughness = 0.02f, .Metallic = 1.f});
+  const int plate2_mat = scene.AddMaterial({.Name = "Plate Glossy", .Albedo = {0.9f, 0.9f, 0.9f}, .Roughness = 0.08f, .Metallic = 1.f});
+  const int plate3_mat = scene.AddMaterial({.Name = "Plate Broad Gloss", .Albedo = {0.82f, 0.82f, 0.82f}, .Roughness = 0.28f, .Metallic = 1.f});
 
   // Three square lights with the same tiny/medium/large progression as the
   // reference image, kept roughly equal in total emitted flux.
@@ -874,17 +771,11 @@ Scene CreateVeachScene() {
   });
 
   // ── Floor (Y=0) ────────────────────────────────────────────────────────────
-  scene.AddPrimitive(
-      Mesh{"Floor",
-           {Triangle{Point{0.f, 0.f, 0.f}, Point{550.f, 0.f, 0.f},
-                     Point{550.f, 0.f, 550.f}, Vector{0.f, 1.f, 0.f}},
-            Triangle{Point{0.f, 0.f, 0.f}, Point{550.f, 0.f, 550.f},
-                     Point{0.f, 0.f, 550.f}, Vector{0.f, 1.f, 0.f}}}},
-      floor_mat);
+  scene.AddPrimitive(Mesh{"Floor", {Triangle{Point{0.f, 0.f, 0.f}, Point{550.f, 0.f, 0.f}, Point{550.f, 0.f, 550.f}, Vector{0.f, 1.f, 0.f}}, Triangle{Point{0.f, 0.f, 0.f}, Point{550.f, 0.f, 550.f}, Point{0.f, 0.f, 550.f}, Vector{0.f, 1.f, 0.f}}}}, floor_mat);
 
   // ── Reflective bands, stepped like the reference composition ──────────────
-  auto make_plate = [&](float cx, float cy, float cz, float half_width,
-                        float half_depth, float tilt_degrees, int mat_idx) {
+  auto make_plate = [&](float cx, float cy, float cz, float half_width, float half_depth, float tilt_degrees, int mat_idx)
+  {
     const float tilt = glm::radians(tilt_degrees);
     const Vector tangent_x{1.f, 0.f, 0.f};
     // Build the plate like a shallow tray: the near edge drops toward the
@@ -896,17 +787,15 @@ Scene CreateVeachScene() {
     const Point p2 = center + tangent_x * half_width + tangent_depth * half_depth;
     const Point p3 = center - tangent_x * half_width + tangent_depth * half_depth;
     const Vector normal = glm::normalize(glm::cross(p1 - p0, p2 - p0));
-    scene.AddPrimitive(
-        Mesh{"Plate",
-             {Triangle{p0, p1, p2, normal}, Triangle{p0, p2, p3, normal}}},
-        mat_idx);
+    scene.AddPrimitive(Mesh{"Plate", {Triangle{p0, p1, p2, normal}, Triangle{p0, p2, p3, normal}}}, mat_idx);
   };
   make_plate(275.f, 146.f, 332.f, 92.f, 28.f, 14.f, plate1_mat);
   make_plate(275.f, 100.f, 236.f, 130.f, 34.f, 22.f, plate2_mat);
   make_plate(275.f, 56.f, 140.f, 172.f, 40.f, 30.f, plate3_mat);
 
   // ── Square area lights tilted toward the camera and the plates ────────────
-  auto make_light = [&](float cx, float cy, float cz, float half, int mat_idx) {
+  auto make_light = [&](float cx, float cy, float cz, float half, int mat_idx)
+  {
     const Vector tangent_x{1.f, 0.f, 0.f};
     const Vector tangent_y = glm::normalize(Vector{0.f, 0.62f, -0.78f});
     const Point center{cx, cy, cz};
@@ -915,14 +804,11 @@ Scene CreateVeachScene() {
     const Point p2 = center + tangent_x * half + tangent_y * half;
     const Point p3 = center - tangent_x * half + tangent_y * half;
     const Vector normal = glm::normalize(glm::cross(p2 - p0, p1 - p0));
-    scene.AddPrimitive(
-        Mesh{"Light",
-             {Triangle{p0, p2, p1, normal}, Triangle{p0, p3, p2, normal}}},
-        mat_idx);
+    scene.AddPrimitive(Mesh{"Light", {Triangle{p0, p2, p1, normal}, Triangle{p0, p3, p2, normal}}}, mat_idx);
   };
-  make_light(176.f, 290.f, 250.f, 5.f, light1_mat);   // tiny square, left
-  make_light(275.f, 286.f, 247.f, 16.f, light2_mat);  // medium square, center
-  make_light(380.f, 282.f, 244.f, 30.f, light3_mat);  // large square, right
+  make_light(176.f, 290.f, 250.f, 5.f, light1_mat);  // tiny square, left
+  make_light(275.f, 286.f, 247.f, 16.f, light2_mat); // medium square, center
+  make_light(380.f, 282.f, 244.f, 30.f, light3_mat); // large square, right
 
   return scene;
 }

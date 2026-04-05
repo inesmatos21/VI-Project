@@ -24,11 +24,14 @@
 #include <optional>
 #include <variant>
 
-namespace VI {
-namespace {
+namespace VI
+{
+namespace
+{
 
 // Power heuristic (beta=2) for two strategies with one sample each
-float PowerHeuristic(float pdf_a, float pdf_b) {
+float PowerHeuristic(float pdf_a, float pdf_b)
+{
   const float a2 = pdf_a * pdf_a;
   const float b2 = pdf_b * pdf_b;
   if (a2 + b2 <= 0.f)
@@ -36,36 +39,42 @@ float PowerHeuristic(float pdf_a, float pdf_b) {
   return a2 / (a2 + b2);
 }
 
-float ComputeTriangleArea(const Triangle &tri) {
+float ComputeTriangleArea(const Triangle& tri)
+{
   const auto [v1, v2, v3] = tri.GetVertices();
   return 0.5f * glm::length(glm::cross(v2 - v1, v3 - v1));
 }
 
-float ComputeMeshArea(const Mesh &mesh) {
+float ComputeMeshArea(const Mesh& mesh)
+{
   float total = 0.f;
   for (size_t i = 0; i < mesh.GetTriangleCount(); ++i)
     total += ComputeTriangleArea(mesh.GetTriangle(i));
   return total;
 }
 
-struct MeshSample {
+struct MeshSample
+{
   Point Position;
   Vector Normal;
   float AreaPDF{0.f};
 };
 
-std::optional<MeshSample> SampleMesh(const Mesh &mesh) {
+std::optional<MeshSample> SampleMesh(const Mesh& mesh)
+{
   const float total_area = ComputeMeshArea(mesh);
   if (total_area <= EPSILON)
     return std::nullopt;
 
   float target = Random::RandomFloat(0.f, 1.f) * total_area;
   float cumulative = 0.f;
-  const Triangle *sampled = nullptr;
-  for (size_t i = 0; i < mesh.GetTriangleCount(); ++i) {
-    const Triangle &tri = mesh.GetTriangle(i);
+  const Triangle* sampled = nullptr;
+  for (size_t i = 0; i < mesh.GetTriangleCount(); ++i)
+  {
+    const Triangle& tri = mesh.GetTriangle(i);
     cumulative += tri.GetArea();
-    if (target <= cumulative || i + 1 == mesh.GetTriangleCount()) {
+    if (target <= cumulative || i + 1 == mesh.GetTriangleCount())
+    {
       sampled = &tri;
       break;
     }
@@ -84,30 +93,37 @@ std::optional<MeshSample> SampleMesh(const Mesh &mesh) {
   };
 }
 
-int CountAreaLights(const Scene &scene) {
+int CountAreaLights(const Scene& scene)
+{
   int count = 0;
-  for (const auto &l : scene.GetLights())
+  for (const auto& l : scene.GetLights())
     if (l->GetType() == LightType::Area)
       ++count;
   return count;
 }
 
-const AreaLight *GetNthAreaLight(const Scene &scene, int n) {
+const AreaLight* GetNthAreaLight(const Scene& scene, int n)
+{
   int count = 0;
-  for (const auto &l : scene.GetLights()) {
-    if (l->GetType() == LightType::Area) {
+  for (const auto& l : scene.GetLights())
+  {
+    if (l->GetType() == LightType::Area)
+    {
       if (count == n)
-        return static_cast<const AreaLight *>(l.get());
+        return static_cast<const AreaLight*>(l.get());
       ++count;
     }
   }
   return nullptr;
 }
 
-const AreaLight *FindAreaLightForPrimitive(const Scene &scene, int prim_index) {
-  for (const auto &l : scene.GetLights()) {
-    if (l->GetType() == LightType::Area) {
-      const auto *al = static_cast<const AreaLight *>(l.get());
+const AreaLight* FindAreaLightForPrimitive(const Scene& scene, int prim_index)
+{
+  for (const auto& l : scene.GetLights())
+  {
+    if (l->GetType() == LightType::Area)
+    {
+      const auto* al = static_cast<const AreaLight*>(l.get());
       if (al->GetObjectIndex() == prim_index)
         return al;
     }
@@ -117,23 +133,26 @@ const AreaLight *FindAreaLightForPrimitive(const Scene &scene, int prim_index) {
 
 } // namespace
 
-RGB VeachShader::Execute(const Ray &ray, const Scene &scene) const {
+RGB VeachShader::Execute(const Ray& ray, const Scene& scene) const
+{
   Intersection intersection{};
   if (!scene.Trace(ray, intersection))
     return m_BackgroundColor;
 
-  const Primitive &prim = scene.GetPrimitive(intersection.ObjectIndex);
-  const Material &mat = scene.GetMaterial(prim.MaterialIndex);
+  const Primitive& prim = scene.GetPrimitive(intersection.ObjectIndex);
+  const Material& mat = scene.GetMaterial(prim.MaterialIndex);
 
   if (mat.GetEmissionPower() > 0.f)
     return mat.GetRadiance();
 
-  if constexpr (kVeachMode == VeachMode::NEEOnly) {
+  if constexpr (kVeachMode == VeachMode::NEEOnly)
+  {
     return EvaluateLightStrategy(ray, scene, intersection, mat,
                                  /*apply_mis=*/false);
   }
 
-  if constexpr (kVeachMode == VeachMode::BRDFOnly) {
+  if constexpr (kVeachMode == VeachMode::BRDFOnly)
+  {
     return EvaluateBRDFStrategy(ray, scene, intersection, mat,
                                 /*apply_mis=*/false);
   }
@@ -142,7 +161,8 @@ RGB VeachShader::Execute(const Ray &ray, const Scene &scene) const {
   // at the primary hit, divide by its selection probability, and weight it
   // against the competing PDF expressed at the same vertex.
   constexpr float p_select = 0.5f;
-  if (Random::RandomFloat(0.f, 1.f) < p_select) {
+  if (Random::RandomFloat(0.f, 1.f) < p_select)
+  {
     return EvaluateLightStrategy(ray, scene, intersection, mat,
                                  /*apply_mis=*/true) /
            p_select;
@@ -152,27 +172,23 @@ RGB VeachShader::Execute(const Ray &ray, const Scene &scene) const {
          p_select;
 }
 
-RGB VeachShader::EvaluateLightStrategy(const Ray &ray, const Scene &scene,
-                                       const Intersection &intersection,
-                                       const Material &material,
-                                       bool apply_mis) const {
+RGB VeachShader::EvaluateLightStrategy(const Ray& ray, const Scene& scene, const Intersection& intersection, const Material& material, bool apply_mis) const
+{
   const int num_lights = CountAreaLights(scene);
   if (num_lights == 0)
     return {};
 
   // Uniformly select one area light
-  const int selected_idx =
-      std::min(static_cast<int>(Random::RandomFloat(0.f, 1.f) * num_lights),
-               num_lights - 1);
-  const AreaLight *area_light = GetNthAreaLight(scene, selected_idx);
+  const int selected_idx = std::min(static_cast<int>(Random::RandomFloat(0.f, 1.f) * num_lights), num_lights - 1);
+  const AreaLight* area_light = GetNthAreaLight(scene, selected_idx);
   if (!area_light)
     return {};
 
   const int obj_idx = area_light->GetObjectIndex();
   if (obj_idx < 0 || static_cast<size_t>(obj_idx) >= scene.GetPrimitiveCount())
     return {};
-  const Primitive &light_prim = scene.GetPrimitive(obj_idx);
-  const auto *mesh = std::get_if<Mesh>(&light_prim.Geometry);
+  const Primitive& light_prim = scene.GetPrimitive(obj_idx);
+  const auto* mesh = std::get_if<Mesh>(&light_prim.Geometry);
   if (!mesh)
     return {};
 
@@ -180,10 +196,8 @@ RGB VeachShader::EvaluateLightStrategy(const Ray &ray, const Scene &scene,
   if (!sample.has_value() || sample->AreaPDF <= 0.f)
     return {};
 
-  const Vector shading_normal =
-      FaceForward(intersection.Normal, -ray.Direction);
-  const Vector to_light =
-      (sample->Position + sample->Normal * EPSILON) - intersection.Position;
+  const Vector shading_normal = FaceForward(intersection.Normal, -ray.Direction);
+  const Vector to_light = (sample->Position + sample->Normal * EPSILON) - intersection.Position;
   const float dist_sq = glm::dot(to_light, to_light);
   if (dist_sq <= EPSILON * EPSILON)
     return {};
@@ -198,8 +212,7 @@ RGB VeachShader::EvaluateLightStrategy(const Ray &ray, const Scene &scene,
   if (cos_light <= 0.f)
     return {};
 
-  const Ray shadow_ray =
-      Ray::WithOffset(intersection.Position, wi_world, shading_normal);
+  const Ray shadow_ray = Ray::WithOffset(intersection.Position, wi_world, shading_normal);
   if (!scene.Visibility(shadow_ray, dist))
     return {};
 
@@ -213,28 +226,21 @@ RGB VeachShader::EvaluateLightStrategy(const Ray &ray, const Scene &scene,
   const RGB f = microfacet.Evaluate(wo_local, wi_local, material);
 
   // Solid-angle PDF = p_selection * p_area * d² / cos_light
-  const float p_light_sa =
-      (1.f / num_lights) * sample->AreaPDF * dist_sq / cos_light;
+  const float p_light_sa = (1.f / num_lights) * sample->AreaPDF * dist_sq / cos_light;
   if (p_light_sa <= 0.f)
     return {};
 
-  const Material &light_mat = scene.GetMaterial(area_light->GetMaterialIndex());
+  const Material& light_mat = scene.GetMaterial(area_light->GetMaterialIndex());
   const RGB Le = light_mat.GetRadiance();
 
   // f * Le * cos / p_light_sa, optionally weighted by power heuristic
-  const float w =
-      apply_mis ? PowerHeuristic(p_light_sa,
-                                 microfacet.PDF(wo_local, wi_local, material))
-                : 1.f;
+  const float w = apply_mis ? PowerHeuristic(p_light_sa, microfacet.PDF(wo_local, wi_local, material)) : 1.f;
   return (f * Le * cos_surface * w) / p_light_sa;
 }
 
-RGB VeachShader::EvaluateBRDFStrategy(const Ray &ray, const Scene &scene,
-                                      const Intersection &intersection,
-                                      const Material &material,
-                                      bool apply_mis) const {
-  const Vector shading_normal =
-      FaceForward(intersection.Normal, -ray.Direction);
+RGB VeachShader::EvaluateBRDFStrategy(const Ray& ray, const Scene& scene, const Intersection& intersection, const Material& material, bool apply_mis) const
+{
+  const Vector shading_normal = FaceForward(intersection.Normal, -ray.Direction);
   const OrthonormalBasis basis{shading_normal};
   const Vector wo_local = basis.WorldToLocal(-ray.Direction);
   if (wo_local.z <= 0.f)
@@ -249,38 +255,39 @@ RGB VeachShader::EvaluateBRDFStrategy(const Ray &ray, const Scene &scene,
   const RGB f = microfacet.Evaluate(wo_local, wi_local, material);
   const float cos_surface = wi_local.z;
   const Vector wi_world = glm::normalize(basis.LocalToWorld(wi_local));
-  const Ray scattered =
-      Ray::WithOffset(intersection.Position, wi_world, shading_normal);
+  const Ray scattered = Ray::WithOffset(intersection.Position, wi_world, shading_normal);
 
   Intersection secondary{};
   if (!scene.Trace(scattered, secondary))
     return {};
 
-  const Primitive &sec_prim = scene.GetPrimitive(secondary.ObjectIndex);
-  const Material &sec_mat = scene.GetMaterial(sec_prim.MaterialIndex);
+  const Primitive& sec_prim = scene.GetPrimitive(secondary.ObjectIndex);
+  const Material& sec_mat = scene.GetMaterial(sec_prim.MaterialIndex);
 
-  if (sec_mat.GetEmissionPower() > 0.f) {
+  if (sec_mat.GetEmissionPower() > 0.f)
+  {
     // Secondary hit is emissive: optionally apply MIS weight
     const RGB Le = sec_mat.GetRadiance();
 
-    if (apply_mis) {
-      const AreaLight *area_light =
-          FindAreaLightForPrimitive(scene, secondary.ObjectIndex);
-      if (area_light) {
+    if (apply_mis)
+    {
+      const AreaLight* area_light = FindAreaLightForPrimitive(scene, secondary.ObjectIndex);
+      if (area_light)
+      {
         const int num_lights = CountAreaLights(scene);
-        const Primitive &lp = scene.GetPrimitive(area_light->GetObjectIndex());
-        const auto *lmesh = std::get_if<Mesh>(&lp.Geometry);
-        if (lmesh) {
+        const Primitive& lp = scene.GetPrimitive(area_light->GetObjectIndex());
+        const auto* lmesh = std::get_if<Mesh>(&lp.Geometry);
+        if (lmesh)
+        {
           const float mesh_area = ComputeMeshArea(*lmesh);
-          if (mesh_area > EPSILON) {
-            const Vector light_normal =
-                FaceForward(secondary.Normal, -wi_world);
-            const float cos_light =
-                glm::max(glm::dot(light_normal, -wi_world), 0.f);
-            if (cos_light > 0.f) {
+          if (mesh_area > EPSILON)
+          {
+            const Vector light_normal = FaceForward(secondary.Normal, -wi_world);
+            const float cos_light = glm::max(glm::dot(light_normal, -wi_world), 0.f);
+            if (cos_light > 0.f)
+            {
               const float dist_sq = secondary.Distance * secondary.Distance;
-              const float p_light_sa =
-                  (1.f / num_lights) * (1.f / mesh_area) * dist_sq / cos_light;
+              const float p_light_sa = (1.f / num_lights) * (1.f / mesh_area) * dist_sq / cos_light;
               const float w = PowerHeuristic(p_brdf, p_light_sa);
               return (f * Le * cos_surface * w) / p_brdf;
             }
