@@ -29,6 +29,14 @@ namespace VI
 namespace
 {
 
+// Balance heuristic (beta=1) for two strategies with one sample each
+float BalanceHeuristic(float pdf_a, float pdf_b)
+{
+  if (pdf_a + pdf_b <= 0.f)
+    return 0.f;
+  return pdf_a / (pdf_a + pdf_b);
+}
+
 // Power heuristic (beta=2) for two strategies with one sample each
 float PowerHeuristic(float pdf_a, float pdf_b)
 {

@@ -87,12 +87,15 @@ RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, 
     return RGB{0.0f};
   }
 
-  const RGB diffuse_f = lambertian.Evaluate(wo_local, wi_local, material);
-  const RGB specular_f = microfacet.Evaluate(wo_local, wi_local, material);
+    RGB f;
+    if (!sample_specular) {
+        f = lambertian.Evaluate(wo_local, wi_local, material);
+    } else {
+        f = microfacet.Evaluate(wo_local, wi_local, material);
+    }
   const float diffuse_pdf = lambertian.PDF(wo_local, wi_local, material);
   const float specular_pdf = microfacet.PDF(wo_local, wi_local, material);
-  const RGB f = diffuse_probability * diffuse_f + specular_probability * specular_f;
-  const float pdf = diffuse_probability * diffuse_pdf + specular_probability * specular_pdf;
+  const float pdf = diffuse_pdf + specular_pdf;
   if (pdf <= 0.f)
   {
     return RGB{0.0f};

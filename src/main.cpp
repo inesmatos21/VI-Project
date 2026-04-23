@@ -32,12 +32,13 @@ int main()
   Camera camera{Eye, At, Up, w, h, fovHrad};
 
   PathTracingShader veach_shader{{0.0f, 0.0f, 0.0f}};
-
+  //  VeachShader veach_shader{{0.0f, 0.0f, 0.0f}};
   Scene scene = CreateCornellBox();
+  //  Scene scene = CreateVeachScene ();
 
   scene.Build();
   Renderer renderer;
-  constexpr int spp = 256;
+  constexpr int spp = 32;
   const auto image = renderer.Render(scene, camera, veach_shader, spp, true);
 
   ImagePPM::Save(image, "image.ppm");
