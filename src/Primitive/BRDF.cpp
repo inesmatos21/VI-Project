@@ -137,4 +137,55 @@ float MicrofacetBRDF::D_GGX(float NoH, float roughness) const
   return a2 / (glm::pi<float>() * denom * denom);
 }
 
+
+Vector MfacetLambertBRDF::Sample(const Vector& wo_local [[maybe_unused]], const Material& material [[maybe_unused]]) const
+{
+    switch (mode) {
+        case MODE::LAMBERT_MODE:
+            return lambertBRDF.Sample(wo_local,  material);
+            break;
+        case MODE::GGX_MODE:
+            return microBRDF.Sample(wo_local,  material);
+            break;
+    }
+}
+
+
+Vector MfacetLambertBRDF::Sample(const Vector& wo_local [[maybe_unused]], const Material& material [[maybe_unused]], const MODE _mode)
+{
+    MODE save_mode = mode;
+    mode = _mode;
+    const Vector ret_vec = Sample(wo_local,material);
+    mode = save_mode;
+    return ret_vec;
+}
+
+RGB MfacetLambertBRDF::Evaluate(const Vector& wo_local [[maybe_unused]], const Vector& wi_local [[maybe_unused]], const Material& material) const
+{
+  const float specular_weight = material.GetSpecularProbability();
+  const float diffuse_weight = 1.0f - specular_weight;
+  return diffuse_weight * lambertBRDF.Evaluate(wo_local, wi_local, material) + specular_weight * microBRDF.Evaluate(wo_local, wi_local, material);
+}
+
+float MfacetLambertBRDF::PDF(const Vector& wo_local [[maybe_unused]], const Vector& wi_local, const Material& material [[maybe_unused]]) const
+{
+    switch (mode) {
+        case MODE::LAMBERT_MODE:
+            return lambertBRDF.PDF(wo_local, wi_local, material);
+            break;
+        case MODE::GGX_MODE:
+            return microBRDF.PDF(wo_local, wi_local, material);
+            break;
+    }
+}
+
+float MfacetLambertBRDF::PDF(const Vector& wo_local [[maybe_unused]], const Vector& wi_local, const Material& material [[maybe_unused]], const MODE _mode)
+{
+    MODE save_mode = mode;
+    mode = _mode;
+    float const ret = PDF(wo_local, wi_local, material);
+    mode = save_mode;
+    return ret;
+}
+
 } // namespace VI
