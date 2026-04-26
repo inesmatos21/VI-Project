@@ -46,7 +46,7 @@ int main()
    constexpr float fovHrad = fovH * 3.14f / 180.f;
    Camera camera{Eye, At, Up, w, h, fovHrad};
   VeachShader veach_shader{{0.0f, 0.0f, 0.0f}};
-  Scene scene = CreateVeachScene2 ();
+  Scene scene = CreateVeachScene ();
   // */
     
   scene.Build();

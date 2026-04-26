@@ -727,107 +727,15 @@ Scene CreateImportanceSamplingCornellBox()
 }
 
 // Classic Veach MIS test scene.
-// 4 horizontal plates with increasing roughness sit on a flat floor.
-// 4 area lights of very different sizes (and inversely proportional power)
+// 3 horizontal plates with increasing roughness sit on a flat floor.
+// 3 area lights of very different sizes (and inversely proportional power)
 // hang above the scene.  The combination reveals where each sampling strategy
 // fails and where MIS succeeds:
 //   - tiny bright light  + smooth plate  → only light-sampling works well
 //   - large dim  light  + rough  plate  → only BRDF-sampling works well
 //   - MIS handles all cases with low variance
-//
-// Coordinate system (same as CornellBox scenes):
-//   X: left → right   [0 .. 550]
-//   Y: down → up      [0 .. 350]
-//   Z: front → back   [0 .. 550]
-// Camera: Eye=(275, 220, -300), At=(275, 0, 300)
+
 Scene CreateVeachScene()
-{
-  Scene scene;
-
-  // ── Materials ──────────────────────────────────────────────────────────────
-  const int floor_mat = scene.AddMaterial({.Name = "Floor", .Albedo = {0.5f, 0.5f, 0.5f}, .Roughness = 1.f});
-
-  // Three reflective bands from sharp to broad reflections.
-  const int plate1_mat = scene.AddMaterial({.Name = "Plate Mirror-Like", .Albedo = {0.92f, 0.92f, 0.92f}, .Roughness = 0.02f, .Metallic = 1.f});
-  const int plate2_mat = scene.AddMaterial({.Name = "Plate Glossy", .Albedo = {0.9f, 0.9f, 0.9f}, .Roughness = 0.08f, .Metallic = 1.f});
-  const int plate3_mat = scene.AddMaterial({.Name = "Plate Broad Gloss", .Albedo = {0.82f, 0.82f, 0.82f}, .Roughness = 0.28f, .Metallic = 1.f});
-
-  // Three square lights with the same tiny/medium/large progression as the
-  // reference image, kept roughly equal in total emitted flux.
-  const int light1_mat = scene.AddMaterial({
-      .Name = "Light Tiny",
-      .EmissionColor = {1.f, 0.95f, 0.8f},
-      .EmissionPower = 420.f,
-  });
-  const int light2_mat = scene.AddMaterial({
-      .Name = "Light Medium",
-      .EmissionColor = {1.f, 0.95f, 0.8f},
-      .EmissionPower = 77.f,
-  });
-  const int light3_mat = scene.AddMaterial({
-      .Name = "Light Large",
-      .EmissionColor = {1.f, 0.95f, 0.8f},
-      .EmissionPower = 17.f,
-  });
-
-  // ── Floor (Y=0) ────────────────────────────────────────────────────────────
-  scene.AddPrimitive(Mesh{"Floor", {Triangle{Point{0.f, 0.f, 0.f}, Point{550.f, 0.f, 0.f}, Point{550.f, 0.f, 550.f}, Vector{0.f, 1.f, 0.f}}, Triangle{Point{0.f, 0.f, 0.f}, Point{550.f, 0.f, 550.f}, Point{0.f, 0.f, 550.f}, Vector{0.f, 1.f, 0.f}}}}, floor_mat);
-
-  // ── Reflective bands, stepped like the reference composition ──────────────
-  auto make_plate = [&](float cx, float cy, float cz, float half_width, float half_depth, float tilt_degrees, int mat_idx)
-  {
-    const float tilt = glm::radians(tilt_degrees);
-    const Vector tangent_x{1.f, 0.f, 0.f};
-    // Build the plate like a shallow tray: the near edge drops toward the
-    // camera and the far edge lifts away, while the plate stays broad in X.
-    const Vector tangent_depth{0.f, glm::sin(tilt), glm::cos(tilt)};
-    const Point center{cx, cy, cz};
-    const Point p0 = center - tangent_x * half_width - tangent_depth * half_depth;
-    const Point p1 = center + tangent_x * half_width - tangent_depth * half_depth;
-    const Point p2 = center + tangent_x * half_width + tangent_depth * half_depth;
-    const Point p3 = center - tangent_x * half_width + tangent_depth * half_depth;
-    const Vector normal = glm::normalize(glm::cross(p1 - p0, p2 - p0));
-    scene.AddPrimitive(Mesh{"Plate", {Triangle{p0, p1, p2, normal}, Triangle{p0, p2, p3, normal}}}, mat_idx);
-  };
-  make_plate(275.f, 146.f, 332.f, 92.f, 28.f, 14.f, plate1_mat);
-  make_plate(275.f, 100.f, 236.f, 130.f, 34.f, 22.f, plate2_mat);
-  make_plate(275.f, 56.f, 140.f, 172.f, 40.f, 30.f, plate3_mat);
-
-  // ── Square area lights tilted toward the camera and the plates ────────────
-  auto make_light = [&](float cx, float cy, float cz, float half, int mat_idx)
-  {
-    const Vector tangent_x{1.f, 0.f, 0.f};
-    const Vector tangent_y = glm::normalize(Vector{0.f, 0.62f, -0.78f});
-    const Point center{cx, cy, cz};
-    const Point p0 = center - tangent_x * half - tangent_y * half;
-    const Point p1 = center + tangent_x * half - tangent_y * half;
-    const Point p2 = center + tangent_x * half + tangent_y * half;
-    const Point p3 = center - tangent_x * half + tangent_y * half;
-    const Vector normal = glm::normalize(glm::cross(p2 - p0, p1 - p0));
-    scene.AddPrimitive(Mesh{"Light", {Triangle{p0, p2, p1, normal}, Triangle{p0, p3, p2, normal}}}, mat_idx);
-  };
-  make_light(176.f, 290.f, 250.f, 5.f, light1_mat);  // tiny square, left
-  make_light(275.f, 286.f, 247.f, 16.f, light2_mat); // medium square, center
-  make_light(380.f, 282.f, 244.f, 30.f, light3_mat); // large square, right
-
-  return scene;
-}
-
-// Classic Veach MIS test scene.
-// 4 horizontal plates with increasing roughness sit on a flat floor.
-// 4 area lights of very different sizes (and inversely proportional power)
-// hang above the scene.  The combination reveals where each sampling strategy
-// fails and where MIS succeeds:
-//   - tiny bright light  + smooth plate  → only light-sampling works well
-//   - large dim  light  + rough  plate  → only BRDF-sampling works well
-//   - MIS handles all cases with low variance
-//
-// Coordinate system (same as CornellBox scenes):
-//   X: left → right   [0 .. 550]
-//   Y: down → up      [0 .. 350]
-//   Z: front → back   [0 .. 550]
-// Camera: Eye=(275, 220, -300), At=(275, 0, 300)
-Scene CreateVeachScene2()
 {
   Scene scene;
 
