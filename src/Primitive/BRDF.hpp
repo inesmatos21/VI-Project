@@ -42,15 +42,16 @@ private:
   Vector SampleGGX(float alpha) const;
 };
 
+enum class MODE
+{
+    LAMBERT_MODE = 1,
+    GGX_MODE=2,
+};
+
 
 class MfacetLambertBRDF final : public BRDF
 {
 public:
-    enum class MODE
-    {
-        LAMBERT_MODE = 1,
-        GGX_MODE=2,
-    };
     MfacetLambertBRDF(MODE _mode=MODE::GGX_MODE) { mode = _mode;}
     void setMode (MODE _mode) {mode = _mode;}
     RGB Sample(const Vector& wo_local, const Material& material) const override;
