@@ -19,21 +19,19 @@
 #include <algorithm>
 
 // Balance heuristic (beta=1) for two strategies with one sample each
-float BalanceHeuristic(float pdf_a, float p_s_a, float pdf_b, float p_s_b)
+float BalanceHeuristic(float pdf_a, float pdf_b)
 {
-    const float pa = pdf_a * p_s_a;
-    const float pb = pdf_b * p_s_b;
-  const float denom = pa + pb;
+  const float denom = pdf_a + pdf_b;
   if (denom <= 0.f)
     return 0.f;
-  return pa / denom;
+  return pdf_a / denom;
 }
 
 // Power heuristic (beta=2) for two strategies with one sample each
-float PowerHeuristic(float pdf_a, float p_s_a, float pdf_b, float p_s_b)
+float PowerHeuristic(float pdf_a, float pdf_b)
 {
-    const float pa2 = pdf_a * p_s_a * pdf_a * p_s_a;
-    const float pb2 = pdf_b * p_s_b * pdf_b * p_s_b;
+    const float pa2 = pdf_a * pdf_a;
+    const float pb2 = pdf_b * pdf_b;
   const float denom = pa2 + pb2;
   if (denom <= 0.f)
     return 0.f;
@@ -121,17 +119,19 @@ RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, 
   // this is the actual probability with which it was sampled
   float pdf = (sample_microfacet ? microfacet_pdf : diffuse_pdf);
   if (pdf <= 0.f)    return RGB{0.0f};
-  // include the probability with which the sampling MODE was selected
-    
-  // NOTE: THat probability shall not be included
-  // the BRDF evaluation includes both the GGX and the Lambert lobes
-  //pdf *= (sample_microfacet ? microfacet_probability : (1.-microfacet_probability));
     
   // get MIS weight
-  const float w_mis = (sample_microfacet ? PowerHeuristic(microfacet_pdf, microfacet_probability, diffuse_pdf, (1.f - microfacet_probability)) : PowerHeuristic(diffuse_pdf, (1.f - microfacet_probability), microfacet_pdf, microfacet_probability));
-
+    // THis is the weight as defined in PBRT book
+    // See eq. 2.14 (balance) and 2.15 (power) in
+    //https://pbr-book.org/4ed/Monte_Carlo_Integration/Improving_Efficiency#eq:balance-heuristic
+    float w_MIS = 1.f;
+    if (do_MIS) {
+        w_MIS  = (sample_microfacet ? PowerHeuristic(microfacet_pdf*microfacet_probability, diffuse_pdf*(1.f-microfacet_probability)) : PowerHeuristic(diffuse_pdf*(1.f-microfacet_probability), microfacet_pdf*microfacet_probability));
+    }
+    
+     
   const float cos_theta = wi_local.z;
-  const RGB throughput = ((do_MIS ? w_mis : 1.f) * f * cos_theta) / pdf;
+  const RGB throughput = w_MIS * f * cos_theta / pdf;
     
   // Russian Roulette
   float continuation_probability = 1.0f;
