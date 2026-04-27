@@ -120,13 +120,13 @@ SelectedLight SelectImportanceLight(const Scene& scene)
 
 } // namespace
 
-RGB EvaluateBSDF(const Vector& wo_local, const Vector& wi_local, const Material& material)
+RGB EvaluateBSDF(const Vector& wo_local, const Vector& wi_local, const Material& material, const Vec2& tex_coord)
 {
-  const float specular_weight = material.GetSpecularProbability();
+  const float specular_weight = material.GetSpecularProbability(tex_coord);
   const float diffuse_weight = 1.0f - specular_weight;
   const LambertianBRDF lambertian{};
   const MicrofacetBRDF microfacet{};
-  return diffuse_weight * lambertian.Evaluate(wo_local, wi_local, material) + specular_weight * microfacet.Evaluate(wo_local, wi_local, material);
+  return diffuse_weight * lambertian.Evaluate(wo_local, wi_local, material, tex_coord) + specular_weight * microfacet.Evaluate(wo_local, wi_local, material, tex_coord);
 }
 
 RGB EstimateDirectIllumination(const Ray& ray, const Scene& scene, const Intersection& intersection, const Material& material, const Light* selected_light)
@@ -139,7 +139,7 @@ RGB EstimateDirectIllumination(const Ray& ray, const Scene& scene, const Interse
   // --------- AMBIENT LIGHT
   if (selected_light->GetType() == LightType::Ambient)
   {
-    return (material.GetAlbedo() * light_radiance);
+    return (material.GetAlbedo(intersection.TexCoord) * light_radiance);
   }
 
   // --------- POINT LIGHT
@@ -175,7 +175,7 @@ RGB EstimateDirectIllumination(const Ray& ray, const Scene& scene, const Interse
     }
 
     // evaluate BSDF
-    const RGB bsdf = EvaluateBSDF(wo_local, wi_local, material);
+    const RGB bsdf = EvaluateBSDF(wo_local, wi_local, material, intersection.TexCoord);
 
     // Lr = bsdf * radiance * cos (theta)
     return (bsdf * wi_local.z * light_radiance);
@@ -246,7 +246,7 @@ RGB EstimateDirectIllumination(const Ray& ray, const Scene& scene, const Interse
       return RGB{0.f};
     }
 
-    const RGB bsdf = EvaluateBSDF(wo_local, wi_local, material);
+    const RGB bsdf = EvaluateBSDF(wo_local, wi_local, material, intersection.TexCoord);
 
     // G = cos (theta_N) * cos (theta_L) / d^2
     const float geometry_term = (cos_surface * cos_light) / distance_squared;

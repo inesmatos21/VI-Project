@@ -7,7 +7,11 @@
 namespace VI
 {
 
-Triangle::Triangle(const Point& v1, const Point& v2, const Point& v3, const Vector& normal, bool back_face_culling) : m_V1{v1}, m_V2{v2}, m_V3{v3}, m_Normal{normal}, m_BackFaceCulling{back_face_culling}, m_Area{0.5f * glm::length(glm::cross(m_V2 - m_V1, m_V3 - m_V1))}
+Triangle::Triangle(const Point& v1, const Point& v2, const Point& v3, const Vector& normal, bool back_face_culling) : Triangle{v1, v2, v3, normal, Vec2{0.f}, Vec2{0.f}, Vec2{0.f}, back_face_culling}
+{
+}
+
+Triangle::Triangle(const Point& v1, const Point& v2, const Point& v3, const Vector& normal, const Vec2& uv1, const Vec2& uv2, const Vec2& uv3, bool back_face_culling) : m_V1{v1}, m_V2{v2}, m_V3{v3}, m_Normal{normal}, m_UV1{uv1}, m_UV2{uv2}, m_UV3{uv3}, m_BackFaceCulling{back_face_culling}, m_Area{0.5f * glm::length(glm::cross(m_V2 - m_V1, m_V3 - m_V1))}
 {
   m_BoundingBox = {.Min = v1, .Max = v1};
   m_BoundingBox.Update(v2);
@@ -61,6 +65,7 @@ bool Triangle::Intersect(const Ray& r, Intersection& intersection) const
   intersection = {
       .Position = p_hit,
       .Normal = m_Normal,
+      .TexCoord = (1.0f - u - v) * m_UV1 + u * m_UV2 + v * m_UV3,
       .Distance = t,
   };
 

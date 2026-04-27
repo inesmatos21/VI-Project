@@ -74,6 +74,7 @@ add_executable(VI-RT src/main.cpp
     src/Scene/Scene.cpp
     src/Scene/SceneBuilder.hpp
     src/Scene/SceneBuilder.cpp
+    src/Scene/GltfSceneBuilder.cpp
 
     # Primitives
     src/Primitive/BRDF.hpp
@@ -123,6 +124,7 @@ add_executable(VI-RT src/main.cpp
     src/Shaders/VeachShader.cpp
 )
 target_include_directories(VI-RT PRIVATE src)
+target_include_directories(VI-RT SYSTEM PRIVATE external/tinygltf)
 target_precompile_headers(VI-RT PRIVATE src/vi_pch.h)
 
 target_link_libraries(VI-RT PRIVATE glm::glm)

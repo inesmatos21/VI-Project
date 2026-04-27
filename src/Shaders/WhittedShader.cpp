@@ -53,7 +53,8 @@ RGB WhittedShader::DirectIllumination(const Ray& ray, const Scene& scene, const 
   RGB color{0.0f};
 
   Vector shading_normal = FaceForward(intersection.Normal, -ray.Direction);
-  const RGB diffuse_color = material.GetAlbedo() * (1.f - material.GetMetallic());
+  const RGB albedo = material.GetAlbedo(intersection.TexCoord);
+  const RGB diffuse_color = albedo * (1.f - material.GetMetallic());
 
   for (const auto& light : scene.GetLights())
   {
@@ -92,7 +93,7 @@ RGB WhittedShader::IndirectIllumination(const Ray& ray, const Scene& scene, cons
   const float cos_theta = glm::max(0.0f, glm::dot(shading_normal, -ray.Direction));
   Ray scattered_ray = Ray::WithOffset(intersection.Position, reflected, intersection.Normal);
 
-  const RGB r0 = material.GetAlbedo();
+  const RGB r0 = material.GetAlbedo(intersection.TexCoord);
   const RGB fresnel = r0 + (RGB{1.f} - r0) * glm::pow(1.f - cos_theta, 5.f);
 
   Intersection scattered_intersection{};

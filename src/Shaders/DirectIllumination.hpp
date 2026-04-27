@@ -26,7 +26,7 @@ enum class DirectIlluminationMode
   All,
 };
 
-RGB EvaluateBSDF(const Vector& wo_local, const Vector& wi_local, const Material& material);
+RGB EvaluateBSDF(const Vector& wo_local, const Vector& wi_local, const Material& material, const Vec2& tex_coord);
 
 RGB EstimateDirectIllumination(const Ray& ray, const Scene& scene, const Intersection& intersection, const Material& material, const Light* selected_light);
 

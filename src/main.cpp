@@ -19,46 +19,88 @@
 #endif
 
 #include <chrono>
+#include <filesystem>
 #include <iostream>
+#include <optional>
+#include <stdexcept>
+#include <string_view>
 
 using namespace VI;
 
-int main()
+namespace
+{
+
+std::optional<std::filesystem::path> ParseScenePath(int argc, char** argv)
+{
+  std::optional<std::filesystem::path> scene_path = std::nullopt;
+  for (int i = 1; i < argc; ++i)
+  {
+    const std::string_view arg{argv[i]};
+    if (arg == "--scene")
+    {
+      if (i + 1 >= argc)
+      {
+        throw std::invalid_argument("--scene requires a glTF path");
+      }
+      scene_path = std::filesystem::path{argv[++i]};
+      continue;
+    }
+
+    throw std::invalid_argument("Unknown argument: " + std::string{arg});
+  }
+  return scene_path;
+}
+
+} // namespace
+
+int main(int argc, char** argv)
 {
   auto begin = std::chrono::system_clock::now();
+  const auto scene_path = ParseScenePath(argc, argv);
 
   constexpr int w = 800;
   constexpr int h = 600;
 
+  // /*
   // Path Tracing Cornell Box Camera
-  constexpr Point Eye = {278, 273, -800};
-  constexpr Point At = {278, 273, 200};
-  constexpr Vector Up = {0, 1, 0};
-  constexpr float fovH = 40.f;
-  constexpr float fovHrad = fovH * 3.14f / 180.f;
-  Camera camera{Eye, At, Up, w, h, fovHrad};
-  PathTracingShader veach_shader{{0.0f, 0.0f, 0.0f}};
-  Scene scene = CreateCornellBox();
+  // constexpr Point Eye = {278, 273, -800};
+  // constexpr Point At = {278, 273, 200};
+  // constexpr Vector Up = {0, 1, 0};
+  // constexpr float fovH = 40.f;
+  // constexpr float fovHrad = fovH * 3.14f / 180.f;
+  // Camera camera{Eye, At, Up, w, h, fovHrad};
+  // PathTracingShader veach_shader{{0.0f, 0.0f, 0.0f}};
+  // Scene scene = CreateCornellBox();
+  // */
 
-  /*
   // Veach Camera
   // Camera for the Veach demo scene: centered composition with the plate stack
-    // directly under the square lights and a less dominant floor presence.
-    constexpr Point Eye = {0, 15, -15};
-    constexpr Point At = {0, 0, 0};
-    constexpr Vector Up = {0, 1, 0};
-    constexpr float fovH = 45.f;
+  // directly under the square lights and a less dominant floor presence.
+  constexpr Point Eye = {0, 2, -10};
+  constexpr Point At = {0, 1, 2};
+  constexpr Vector Up = {0, 1, 0};
+  constexpr float fovH = 45.f;
 
   constexpr float fovHrad = fovH * 3.14f / 180.f;
   Camera camera{Eye, At, Up, w, h, fovHrad};
- VeachShader veach_shader{{0.0f, 0.0f, 0.0f}};
- Scene scene = CreateVeachScene ();
-  */
-
-  scene.Build();
   Renderer renderer;
-  constexpr int spp = 1;
-  const auto image = renderer.Render(scene, camera, veach_shader, spp, true);
+  constexpr int spp = 32;
+  Image image{w, h};
+
+  if (scene_path.has_value())
+  {
+    PathTracingShader path_tracing_shader{{0.0f, 0.0f, 0.0f}, DirectIlluminationMode::Importance};
+    Scene scene = CreateGltfScene(*scene_path);
+    scene.Build();
+    image = renderer.Render(scene, camera, path_tracing_shader, spp, true);
+  }
+  else
+  {
+    VeachShader veach_shader{{0.0f, 0.0f, 0.0f}};
+    Scene scene = CreateVeachScene2();
+    scene.Build();
+    image = renderer.Render(scene, camera, veach_shader, spp, true);
+  }
 
   ImagePPM::Save(image, "image.ppm");
 

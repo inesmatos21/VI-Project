@@ -20,7 +20,7 @@ constexpr float EPS_COS = 1e-4f;
 constexpr float EPS_VOH = 1e-4f;
 constexpr float EPS_PDF = 1e-6f;
 
-Vector LambertianBRDF::Sample(const Vector& wo_local [[maybe_unused]], const Material& material [[maybe_unused]]) const
+Vector LambertianBRDF::Sample(const Vector& wo_local [[maybe_unused]], const Material& material [[maybe_unused]], const Vec2& tex_coord [[maybe_unused]]) const
 {
   // Lambertian reflection models a perfectly diffuse surface. Its outgoing
   // energy is proportional to cos(theta), so cosine-weighted hemisphere
@@ -38,14 +38,13 @@ Vector LambertianBRDF::Sample(const Vector& wo_local [[maybe_unused]], const Mat
   return Vector{x, y, z};
 }
 
-RGB LambertianBRDF::Evaluate(const Vector& wo_local [[maybe_unused]], const Vector& wi_local [[maybe_unused]], const Material& material) const
+RGB LambertianBRDF::Evaluate(const Vector& wo_local [[maybe_unused]], const Vector& wi_local [[maybe_unused]], const Material& material, const Vec2& tex_coord) const
 {
-  // Diffuse BRDF: albedo / pi. It does not depend on the viewing direction or
-  // light direction, only on the material color.
-  return material.GetAlbedo() / glm::pi<float>();
+
+  return material.GetAlbedo(tex_coord) / glm::pi<float>();
 }
 
-float LambertianBRDF::PDF(const Vector& wo_local [[maybe_unused]], const Vector& wi_local, const Material& material [[maybe_unused]]) const
+float LambertianBRDF::PDF(const Vector& wo_local [[maybe_unused]], const Vector& wi_local, const Material& material [[maybe_unused]], const Vec2& tex_coord [[maybe_unused]]) const
 {
   if (wi_local.z <= 0.f)
   {
@@ -55,7 +54,7 @@ float LambertianBRDF::PDF(const Vector& wo_local [[maybe_unused]], const Vector&
   return wi_local.z / glm::pi<float>();
 }
 
-Vector MicrofacetBRDF::Sample(const Vector& wo_local, const Material& material) const
+Vector MicrofacetBRDF::Sample(const Vector& wo_local, const Material& material, const Vec2& tex_coord [[maybe_unused]]) const
 {
   if (wo_local.z <= 0.0f)
     return Vector{0.0f};
@@ -84,7 +83,7 @@ Vector MicrofacetBRDF::Sample(const Vector& wo_local, const Material& material) 
   return wi_local;
 }
 
-RGB MicrofacetBRDF::Evaluate(const Vector& wo_local, const Vector& wi_local, const Material& material) const
+RGB MicrofacetBRDF::Evaluate(const Vector& wo_local, const Vector& wi_local, const Material& material, const Vec2& tex_coord) const
 {
   float NoV = wo_local.z;
   float NoL = wi_local.z;
@@ -106,15 +105,13 @@ RGB MicrofacetBRDF::Evaluate(const Vector& wo_local, const Vector& wi_local, con
   float D = D_GGX(NoH, a);
   float G = G_Smith(NoV, NoL, a);
 
-  // F0 is the reflectance at normal incidence. Dielectrics start near 4%;
-  // metals use their base color as the specular reflectance.
-  RGB F0 = glm::mix(RGB{0.04f}, material.GetAlbedo(), material.GetMetallic());
+  RGB F0 = glm::mix(RGB{0.04f}, material.GetAlbedo(tex_coord), material.GetMetallic());
   RGB F = Fresnel_Schlick(VoH, F0);
 
   return (D * G * F) / (4.0f * NoV * NoL);
 }
 
-float MicrofacetBRDF::PDF(const Vector& wo_local, const Vector& wi_local, const Material& material) const
+float MicrofacetBRDF::PDF(const Vector& wo_local, const Vector& wi_local, const Material& material, const Vec2& tex_coord [[maybe_unused]]) const
 {
   if (wo_local.z <= 0.0f || wi_local.z <= 0.0f)
     return 0.0f;
@@ -163,55 +160,52 @@ float MicrofacetBRDF::D_GGX(float NoH, float roughness) const
 }
 
 
-Vector MfacetLambertBRDF::Sample(const Vector& wo_local [[maybe_unused]], const Material& material [[maybe_unused]]) const
+Vector MfacetLambertBRDF::Sample(const Vector& wo_local [[maybe_unused]], const Material& material [[maybe_unused]], const Vec2& tex_coord) const
 {
     switch (mode) {
         case MODE::LAMBERT_MODE:
-            return lambertBRDF.Sample(wo_local,  material);
+            return lambertBRDF.Sample(wo_local,  material, tex_coord);
             break;
         case MODE::GGX_MODE:
-            return microBRDF.Sample(wo_local,  material);
+            return microBRDF.Sample(wo_local,  material, tex_coord);
             break;
     }
 }
 
 
-Vector MfacetLambertBRDF::Sample(const Vector& wo_local [[maybe_unused]], const Material& material [[maybe_unused]], const MODE _mode)
+Vector MfacetLambertBRDF::Sample(const Vector& wo_local [[maybe_unused]], const Material& material [[maybe_unused]], const MODE _mode, const Vec2& tex_coord)
 {
     MODE save_mode = mode;
     mode = _mode;
-    const Vector ret_vec = Sample(wo_local,material);
+    const Vector ret_vec = Sample(wo_local, material, tex_coord);
     mode = save_mode;
     return ret_vec;
 }
 
-RGB MfacetLambertBRDF::Evaluate(const Vector& wo_local [[maybe_unused]], const Vector& wi_local [[maybe_unused]], const Material& material) const
+RGB MfacetLambertBRDF::Evaluate(const Vector& wo_local [[maybe_unused]], const Vector& wi_local [[maybe_unused]], const Material& material, const Vec2& tex_coord) const
 {
-  // The material decides how much of the BRDF value is diffuse vs specular.
-  // This is separate from the path tracer's sampling probability, although in
-  // practice matching them often reduces noise.
-  const float specular_weight = material.GetSpecularProbability();
+  const float specular_weight = material.GetSpecularProbability(tex_coord);
   const float diffuse_weight = 1.0f - specular_weight;
-  return diffuse_weight * lambertBRDF.Evaluate(wo_local, wi_local, material) + specular_weight * microBRDF.Evaluate(wo_local, wi_local, material);
+  return diffuse_weight * lambertBRDF.Evaluate(wo_local, wi_local, material, tex_coord) + specular_weight * microBRDF.Evaluate(wo_local, wi_local, material, tex_coord);
 }
 
-float MfacetLambertBRDF::PDF(const Vector& wo_local [[maybe_unused]], const Vector& wi_local, const Material& material [[maybe_unused]]) const
+float MfacetLambertBRDF::PDF(const Vector& wo_local [[maybe_unused]], const Vector& wi_local, const Material& material [[maybe_unused]], const Vec2& tex_coord) const
 {
     switch (mode) {
         case MODE::LAMBERT_MODE:
-            return lambertBRDF.PDF(wo_local, wi_local, material);
+            return lambertBRDF.PDF(wo_local, wi_local, material, tex_coord);
             break;
         case MODE::GGX_MODE:
-            return microBRDF.PDF(wo_local, wi_local, material);
+            return microBRDF.PDF(wo_local, wi_local, material, tex_coord);
             break;
     }
 }
 
-float MfacetLambertBRDF::PDF(const Vector& wo_local [[maybe_unused]], const Vector& wi_local, const Material& material [[maybe_unused]], const MODE _mode)
+float MfacetLambertBRDF::PDF(const Vector& wo_local [[maybe_unused]], const Vector& wi_local, const Material& material [[maybe_unused]], const MODE _mode, const Vec2& tex_coord)
 {
     MODE save_mode = mode;
     mode = _mode;
-    float const ret = PDF(wo_local, wi_local, material);
+    float const ret = PDF(wo_local, wi_local, material, tex_coord);
     mode = save_mode;
     return ret;
 }

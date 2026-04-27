@@ -13,25 +13,25 @@ class BRDF
 public:
   virtual ~BRDF() = default;
 
-  virtual RGB Sample(const Vector& wo_local, const Material& material) const = 0;
-  virtual Vector Evaluate(const Vector& wo_local, const Vector& wi_local, const Material& material) const = 0;
-  virtual float PDF(const Vector& wo_local, const Vector& wi_local, const Material& material) const = 0;
+  virtual RGB Sample(const Vector& wo_local, const Material& material, const Vec2& tex_coord = Vec2{0.f}) const = 0;
+  virtual Vector Evaluate(const Vector& wo_local, const Vector& wi_local, const Material& material, const Vec2& tex_coord = Vec2{0.f}) const = 0;
+  virtual float PDF(const Vector& wo_local, const Vector& wi_local, const Material& material, const Vec2& tex_coord = Vec2{0.f}) const = 0;
 };
 
 class LambertianBRDF final : public BRDF
 {
 public:
-  RGB Sample(const Vector& wo_local, const Material& material) const override;
-  Vector Evaluate(const Vector& wo_local, const Vector& wi_local, const Material& material) const override;
-  float PDF(const Vector& wo_local, const Vector& wi_local, const Material& material) const override;
+  RGB Sample(const Vector& wo_local, const Material& material, const Vec2& tex_coord = Vec2{0.f}) const override;
+  Vector Evaluate(const Vector& wo_local, const Vector& wi_local, const Material& material, const Vec2& tex_coord = Vec2{0.f}) const override;
+  float PDF(const Vector& wo_local, const Vector& wi_local, const Material& material, const Vec2& tex_coord = Vec2{0.f}) const override;
 };
 
 class MicrofacetBRDF final : public BRDF
 {
 public:
-  RGB Sample(const Vector& wo_local, const Material& material) const override;
-  Vector Evaluate(const Vector& wo_local, const Vector& wi_local, const Material& material) const override;
-  float PDF(const Vector& wo_local, const Vector& wi_local, const Material& material) const override;
+  RGB Sample(const Vector& wo_local, const Material& material, const Vec2& tex_coord = Vec2{0.f}) const override;
+  Vector Evaluate(const Vector& wo_local, const Vector& wi_local, const Material& material, const Vec2& tex_coord = Vec2{0.f}) const override;
+  float PDF(const Vector& wo_local, const Vector& wi_local, const Material& material, const Vec2& tex_coord = Vec2{0.f}) const override;
 
 private:
   float G1_Smith(float NoX, float a) const;
@@ -54,11 +54,11 @@ class MfacetLambertBRDF final : public BRDF
 public:
     MfacetLambertBRDF(MODE _mode=MODE::GGX_MODE) { mode = _mode;}
     void setMode (MODE _mode) {mode = _mode;}
-    RGB Sample(const Vector& wo_local, const Material& material) const override;
-    RGB Sample(const Vector& wo_local, const Material& material, const MODE _mode) ;
-    Vector Evaluate(const Vector& wo_local, const Vector& wi_local, const Material& material) const override;
-    float PDF(const Vector& wo_local, const Vector& wi_local, const Material& material) const override;
-    float PDF(const Vector& wo_local, const Vector& wi_local, const Material& material, const MODE _mode) ;
+    RGB Sample(const Vector& wo_local, const Material& material, const Vec2& tex_coord = Vec2{0.f}) const override;
+    RGB Sample(const Vector& wo_local, const Material& material, const MODE _mode, const Vec2& tex_coord = Vec2{0.f}) ;
+    Vector Evaluate(const Vector& wo_local, const Vector& wi_local, const Material& material, const Vec2& tex_coord = Vec2{0.f}) const override;
+    float PDF(const Vector& wo_local, const Vector& wi_local, const Material& material, const Vec2& tex_coord = Vec2{0.f}) const override;
+    float PDF(const Vector& wo_local, const Vector& wi_local, const Material& material, const MODE _mode, const Vec2& tex_coord = Vec2{0.f}) ;
 private:
     MODE mode;
     MicrofacetBRDF microBRDF;

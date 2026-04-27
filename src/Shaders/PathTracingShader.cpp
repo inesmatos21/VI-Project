@@ -98,7 +98,7 @@ RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, 
 
   MfacetLambertBRDF microfacetBRDF{};
   // the probability of selecting the specular (GGX) path is BRDF dependent
-  const float microfacet_probability = material.GetSpecularProbability();
+  const float microfacet_probability = material.GetSpecularProbability(intersection.TexCoord);
 
   // stochastically select whether to sample the direction according to specular (microfacet) or diffuse (lambertian)
   const bool sample_microfacet = Random::RandomFloat(0.f, 1.f) < microfacet_probability;
@@ -106,16 +106,17 @@ RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, 
   // sample the direction according to the selected BRDF mode
   const Vector wi_local = microfacetBRDF.Sample(
             wo_local, material,
-            sample_microfacet ? MODE::GGX_MODE : MODE::LAMBERT_MODE);
+            sample_microfacet ? MODE::GGX_MODE : MODE::LAMBERT_MODE,
+            intersection.TexCoord);
   if (wi_local.z <= 0.f)    return RGB{0.0f};
 
   // get the BRDF value
-  RGB const f = microfacetBRDF.Evaluate(wo_local, wi_local, material);
+  RGB const f = microfacetBRDF.Evaluate(wo_local, wi_local, material, intersection.TexCoord);
 
   // get the 2 probabilities with which the direction
   // could have been sampled
-  const float diffuse_pdf = microfacetBRDF.PDF(wo_local, wi_local, material, MODE::LAMBERT_MODE);
-  const float microfacet_pdf = microfacetBRDF.PDF(wo_local, wi_local, material, MODE::GGX_MODE);
+  const float diffuse_pdf = microfacetBRDF.PDF(wo_local, wi_local, material, MODE::LAMBERT_MODE, intersection.TexCoord);
+  const float microfacet_pdf = microfacetBRDF.PDF(wo_local, wi_local, material, MODE::GGX_MODE, intersection.TexCoord);
   // this is the actual probability with which it was sampled
   float pdf = (sample_microfacet ? microfacet_pdf : diffuse_pdf);
   if (pdf <= 0.f)    return RGB{0.0f};

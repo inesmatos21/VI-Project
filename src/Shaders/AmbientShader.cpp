@@ -26,7 +26,7 @@ RGB AmbientShader::Execute(const Ray& ray, const Scene& scene) const
 
     if (light->GetType() == LightType::Ambient)
     {
-      color += material.GetAlbedo() * light_material.GetRadiance();
+      color += material.GetAlbedo(intersection.TexCoord) * light_material.GetRadiance();
     }
   }
   return color;
