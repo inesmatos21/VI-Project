@@ -28,6 +28,9 @@ namespace VI
 {
 namespace
 {
+constexpr float MIN_AREA_LIGHT_DISTANCE_SQUARED = 1e-4f;
+constexpr float MIN_AREA_LIGHT_COSINE = 1e-4f;
+constexpr float MAX_GEOMETRY_TERM = 50.0f;
 
 struct AreaLightSample
 {
@@ -208,7 +211,7 @@ RGB EstimateDirectIllumination(const Ray& ray, const Scene& scene, const Interse
     // light vector
     const Vector to_light = (area_sample->Position + (area_sample->Normal * EPSILON)) - intersection.Position;
     const float distance_squared = glm::dot(to_light, to_light);
-    if (distance_squared <= EPSILON * EPSILON)
+    if (distance_squared <= MIN_AREA_LIGHT_DISTANCE_SQUARED)
     {
       return RGB{0.f};
     }
@@ -223,7 +226,7 @@ RGB EstimateDirectIllumination(const Ray& ray, const Scene& scene, const Interse
     }
 
     const float cos_light = glm::max(glm::dot(area_sample->Normal, -wi_world), 0.f);
-    if (cos_light <= 0.f)
+    if (cos_light <= MIN_AREA_LIGHT_COSINE)
     {
       return RGB{0.f};
     }
@@ -249,7 +252,7 @@ RGB EstimateDirectIllumination(const Ray& ray, const Scene& scene, const Interse
     const RGB bsdf = EvaluateBSDF(wo_local, wi_local, material, intersection.TexCoord);
 
     // G = cos (theta_N) * cos (theta_L) / d^2
-    const float geometry_term = (cos_surface * cos_light) / distance_squared;
+    const float geometry_term = glm::min((cos_surface * cos_light) / distance_squared, MAX_GEOMETRY_TERM);
 
     // Lr = bsdf * L * G / pdf
     return (bsdf * light_radiance * geometry_term) / area_sample->AreaPDF;

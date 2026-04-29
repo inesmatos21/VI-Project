@@ -42,6 +42,12 @@ namespace VI
 {
 constexpr float MAX_DEPTH = 5;
 constexpr int RUSSIAN_ROULETTE_DEPTH = 2;
+constexpr float MAX_SAMPLE_RADIANCE = 10.0f;
+
+RGB ClampRadiance(const RGB& radiance)
+{
+  return glm::clamp(radiance, RGB{0.0f}, RGB{MAX_SAMPLE_RADIANCE});
+}
 
 RGB PathTracingShader::Execute(const Ray& ray, const Scene& scene) const
 {
@@ -155,7 +161,7 @@ RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, 
     incoming_radiance = DoExecute(scattered_ray, scene, scattered_intersection, depth + 1, next_allow_emissive);
   }
 
-  return throughput * incoming_radiance / continuation_probability;
+  return ClampRadiance(throughput * incoming_radiance / continuation_probability);
 }
 
 } // namespace VI

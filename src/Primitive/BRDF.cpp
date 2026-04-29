@@ -54,16 +54,12 @@ float LambertianBRDF::PDF(const Vector& wo_local [[maybe_unused]], const Vector&
   return wi_local.z / glm::pi<float>();
 }
 
-Vector MicrofacetBRDF::Sample(const Vector& wo_local, const Material& material, const Vec2& tex_coord [[maybe_unused]]) const
+Vector MicrofacetBRDF::Sample(const Vector& wo_local, const Material& material, const Vec2& tex_coord) const
 {
   if (wo_local.z <= 0.0f)
     return Vector{0.0f};
 
-  // GGX is a microfacet model: it assumes the surface is made of tiny mirror
-  // facets whose normals follow a statistical distribution. Roughness controls
-  // the width of that distribution. Lower roughness produces a tighter,
-  // mirror-like lobe; higher roughness produces a wider glossy lobe.
-  float roughness = glm::max(material.GetRoughness(), MIN_ROUGHNESS);
+  float roughness = glm::max(material.GetRoughness(tex_coord), MIN_ROUGHNESS);
   float a = roughness * roughness;
 
   // Sample a half-vector h from the GGX normal distribution. The reflected
@@ -95,7 +91,7 @@ RGB MicrofacetBRDF::Evaluate(const Vector& wo_local, const Vector& wi_local, con
   float NoH = glm::max(h.z, 0.0f);
   float VoH = glm::max(glm::dot(wo_local, h), 0.0f);
 
-  float roughness = glm::max(material.GetRoughness(), MIN_ROUGHNESS);
+  float roughness = glm::max(material.GetRoughness(tex_coord), MIN_ROUGHNESS);
   float a = roughness * roughness;
 
   // Cook-Torrance microfacet BRDF:
@@ -105,13 +101,13 @@ RGB MicrofacetBRDF::Evaluate(const Vector& wo_local, const Vector& wi_local, con
   float D = D_GGX(NoH, a);
   float G = G_Smith(NoV, NoL, a);
 
-  RGB F0 = glm::mix(RGB{0.04f}, material.GetAlbedo(tex_coord), material.GetMetallic());
+  RGB F0 = glm::mix(RGB{0.04f}, material.GetAlbedo(tex_coord), material.GetMetallic(tex_coord));
   RGB F = Fresnel_Schlick(VoH, F0);
 
   return (D * G * F) / (4.0f * NoV * NoL);
 }
 
-float MicrofacetBRDF::PDF(const Vector& wo_local, const Vector& wi_local, const Material& material, const Vec2& tex_coord [[maybe_unused]]) const
+float MicrofacetBRDF::PDF(const Vector& wo_local, const Vector& wi_local, const Material& material, const Vec2& tex_coord) const
 {
   if (wo_local.z <= 0.0f || wi_local.z <= 0.0f)
     return 0.0f;
@@ -120,9 +116,7 @@ float MicrofacetBRDF::PDF(const Vector& wo_local, const Vector& wi_local, const 
 
   float nh = glm::max(h.z, EPS_COS);
   float voh = glm::max(glm::dot(wo_local, h), EPS_VOH);
-  // The GGX distribution is sampled in half-vector space. The 1/(4*VoH)
-  // factor converts the half-vector PDF into a reflected-direction PDF.
-  float D = D_GGX(nh, material.GetRoughness());
+  float D = D_GGX(nh, material.GetRoughness(tex_coord));
 
   return glm::max(D * nh / (4.0f * voh), EPS_PDF);
 }

@@ -106,12 +106,13 @@ struct MaterialDesc
   RGB EmissionColor{};
   float EmissionPower = 0.f;
   std::optional<TextureSampler> AlbedoTexture = std::nullopt;
+  std::optional<TextureSampler> MetallicRoughnessTexture = std::nullopt;
 };
 
 class Material
 {
 public:
-  Material(MaterialDesc desc) : m_Name{desc.Name}, m_Albedo{desc.Albedo}, m_EmissionColor{desc.EmissionColor}, m_Metallic{desc.Metallic}, m_Roughness{desc.Roughness}, m_EmissionPower{desc.EmissionPower}, m_AlbedoTexture{std::move(desc.AlbedoTexture)} {}
+  Material(MaterialDesc desc) : m_Name{desc.Name}, m_Albedo{desc.Albedo}, m_EmissionColor{desc.EmissionColor}, m_Metallic{desc.Metallic}, m_Roughness{desc.Roughness}, m_EmissionPower{desc.EmissionPower}, m_AlbedoTexture{std::move(desc.AlbedoTexture)}, m_MetallicRoughnessTexture{std::move(desc.MetallicRoughnessTexture)} {}
 
   const std::string& GetName() const
   {
@@ -147,10 +148,37 @@ public:
   {
     return m_Roughness;
   }
+
+  float GetRoughness(const Vec2& uv) const
+  {
+    if (m_MetallicRoughnessTexture.has_value())
+    {
+      return glm::clamp(m_Roughness * m_MetallicRoughnessTexture->Sample(uv).g, 0.0f, 1.0f);
+    }
+
+    return m_Roughness;
+  }
+
   constexpr float GetMetallic() const
   {
     return m_Metallic;
   }
+
+  float GetMetallic(const Vec2& uv) const
+  {
+    if (m_MetallicRoughnessTexture.has_value())
+    {
+      return glm::clamp(m_Metallic * m_MetallicRoughnessTexture->Sample(uv).b, 0.0f, 1.0f);
+    }
+
+    return m_Metallic;
+  }
+
+  bool HasMetallicRoughnessTexture() const
+  {
+    return m_MetallicRoughnessTexture.has_value();
+  }
+
   float GetSpecularProbability() const
   {
     // This value is a good target for the path tracer's probability of choosing
@@ -173,9 +201,9 @@ public:
 
   float GetSpecularProbability(const Vec2& uv) const
   {
-    const RGB f0 = glm::mix(RGB{0.04f}, GetAlbedo(uv), GetMetallic());
+    const RGB f0 = glm::mix(RGB{0.04f}, GetAlbedo(uv), GetMetallic(uv));
     const float base_probability = std::max(f0.x, std::max(f0.y, f0.z));
-    const float roughness_influence = glm::smoothstep(0.0f, 1.0f, GetRoughness() * 0.7f);
+    const float roughness_influence = glm::smoothstep(0.0f, 1.0f, GetRoughness(uv) * 0.7f);
     return glm::mix(base_probability, base_probability * 0.5f, roughness_influence);
   }
 
@@ -196,5 +224,6 @@ private:
   float m_EmissionPower{0.f};
 
   std::optional<TextureSampler> m_AlbedoTexture{std::nullopt};
+  std::optional<TextureSampler> m_MetallicRoughnessTexture{std::nullopt};
 };
 } // namespace VI

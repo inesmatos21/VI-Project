@@ -1,3 +1,33 @@
+#define TINYGLTF_IMPLEMENTATION
+#define TINYGLTF_NO_STB_IMAGE_WRITE
+#define STB_IMAGE_IMPLEMENTATION
+#include <tiny_gltf.h>
+
+#include <glm/ext/matrix_float3x3.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/vector_float4.hpp>
+#include <glm/fwd.hpp>
+#include <glm/geometric.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/matrix.hpp>
+
+#include <algorithm>
+#include <cstddef>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+#include <cstdint>
+#include <filesystem>
+#include <format>
+#include <optional>
+#include <stdexcept>
+#include <string>
+
+#include "Scene/Scene.hpp"
 #include "Scene/SceneBuilder.hpp"
 
 #include "Image/Image.hpp"
@@ -6,23 +36,6 @@
 #include "Primitive/Geometry/Mesh.hpp"
 #include "Primitive/Geometry/Triangle.hpp"
 #include "Primitive/Material.hpp"
-
-#define TINYGLTF_IMPLEMENTATION
-#define TINYGLTF_NO_STB_IMAGE_WRITE
-#define STB_IMAGE_IMPLEMENTATION
-#include <tiny_gltf.h>
-
-#include <glm/geometric.hpp>
-#include <glm/gtc/matrix_inverse.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp>
-
-#include <cstdint>
-#include <filesystem>
-#include <format>
-#include <optional>
-#include <stdexcept>
-#include <string>
 
 namespace VI
 {
@@ -250,6 +263,11 @@ std::vector<int> ImportMaterials(const tinygltf::Model& model, Scene& scene)
     {
       albedo_texture = CreateTextureSampler(model, pbr.baseColorTexture.index);
     }
+    std::optional<TextureSampler> metallic_roughness_texture = std::nullopt;
+    if (pbr.metallicRoughnessTexture.index >= 0)
+    {
+      metallic_roughness_texture = CreateTextureSampler(model, pbr.metallicRoughnessTexture.index);
+    }
 
     material_map.push_back(scene.AddMaterial({
         .Name = name,
@@ -259,6 +277,7 @@ std::vector<int> ImportMaterials(const tinygltf::Model& model, Scene& scene)
         .EmissionColor = emission_color,
         .EmissionPower = glm::length(emission_color) <= 0.0f ? 0.0f : ReadEmissiveStrength(gltf_material),
         .AlbedoTexture = std::move(albedo_texture),
+        .MetallicRoughnessTexture = std::move(metallic_roughness_texture),
     }));
   }
 

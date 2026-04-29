@@ -39,7 +39,7 @@ RGB WhittedShader::DoExecute(const Ray& ray, const Scene& scene, const Intersect
   const Primitive& primitive = scene.GetPrimitive(intersection.ObjectIndex);
   const Material& material = scene.GetMaterial(primitive.MaterialIndex);
 
-  if (material.GetMetallic() > 0.f)
+  if (material.GetMetallic(intersection.TexCoord) > 0.f)
   {
     color += IndirectIllumination(ray, scene, intersection, material, depth);
   }
@@ -54,7 +54,7 @@ RGB WhittedShader::DirectIllumination(const Ray& ray, const Scene& scene, const 
 
   Vector shading_normal = FaceForward(intersection.Normal, -ray.Direction);
   const RGB albedo = material.GetAlbedo(intersection.TexCoord);
-  const RGB diffuse_color = albedo * (1.f - material.GetMetallic());
+  const RGB diffuse_color = albedo * (1.f - material.GetMetallic(intersection.TexCoord));
 
   for (const auto& light : scene.GetLights())
   {
