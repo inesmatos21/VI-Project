@@ -22,6 +22,9 @@ constexpr float EPS_PDF = 1e-6f;
 
 Vector LambertianBRDF::Sample(const Vector& wo_local [[maybe_unused]], const Material& material [[maybe_unused]]) const
 {
+  // Lambertian reflection models a perfectly diffuse surface. Its outgoing
+  // energy is proportional to cos(theta), so cosine-weighted hemisphere
+  // sampling generates directions that match the BRDF shape well.
   float u1 = Random::RandomFloat(0, 1);
   float u2 = Random::RandomFloat(0, 1);
 
@@ -37,7 +40,8 @@ Vector LambertianBRDF::Sample(const Vector& wo_local [[maybe_unused]], const Mat
 
 RGB LambertianBRDF::Evaluate(const Vector& wo_local [[maybe_unused]], const Vector& wi_local [[maybe_unused]], const Material& material) const
 {
-
+  // Diffuse BRDF: albedo / pi. It does not depend on the viewing direction or
+  // light direction, only on the material color.
   return material.GetAlbedo() / glm::pi<float>();
 }
 
@@ -56,9 +60,15 @@ Vector MicrofacetBRDF::Sample(const Vector& wo_local, const Material& material) 
   if (wo_local.z <= 0.0f)
     return Vector{0.0f};
 
+  // GGX is a microfacet model: it assumes the surface is made of tiny mirror
+  // facets whose normals follow a statistical distribution. Roughness controls
+  // the width of that distribution. Lower roughness produces a tighter,
+  // mirror-like lobe; higher roughness produces a wider glossy lobe.
   float roughness = glm::max(material.GetRoughness(), MIN_ROUGHNESS);
   float a = roughness * roughness;
 
+  // Sample a half-vector h from the GGX normal distribution. The reflected
+  // direction is then produced by mirroring -wo around h.
   Vector random{Random::RandomFloat(0.0f, 1.0f), Random::RandomFloat(0.0f, 1.0f), 0.f};
   float phi = 2.0f * glm::pi<float>() * random.x;
 
@@ -89,9 +99,15 @@ RGB MicrofacetBRDF::Evaluate(const Vector& wo_local, const Vector& wi_local, con
   float roughness = glm::max(material.GetRoughness(), MIN_ROUGHNESS);
   float a = roughness * roughness;
 
+  // Cook-Torrance microfacet BRDF:
+  // D: how many microfacets are aligned with the half-vector
+  // G: how much masking/shadowing happens between microfacets
+  // F: Fresnel reflectance, which increases at grazing angles
   float D = D_GGX(NoH, a);
   float G = G_Smith(NoV, NoL, a);
 
+  // F0 is the reflectance at normal incidence. Dielectrics start near 4%;
+  // metals use their base color as the specular reflectance.
   RGB F0 = glm::mix(RGB{0.04f}, material.GetAlbedo(), material.GetMetallic());
   RGB F = Fresnel_Schlick(VoH, F0);
 
@@ -107,6 +123,8 @@ float MicrofacetBRDF::PDF(const Vector& wo_local, const Vector& wi_local, const 
 
   float nh = glm::max(h.z, EPS_COS);
   float voh = glm::max(glm::dot(wo_local, h), EPS_VOH);
+  // The GGX distribution is sampled in half-vector space. The 1/(4*VoH)
+  // factor converts the half-vector PDF into a reflected-direction PDF.
   float D = D_GGX(nh, material.GetRoughness());
 
   return glm::max(D * nh / (4.0f * voh), EPS_PDF);
@@ -114,6 +132,8 @@ float MicrofacetBRDF::PDF(const Vector& wo_local, const Vector& wi_local, const 
 
 float MicrofacetBRDF::G_Smith(float NoV, float NoL, float roughness) const
 {
+  // Smith geometry term approximates how many microfacets are visible from
+  // both the view direction and the light direction.
   float a = glm::max(roughness, MIN_ROUGHNESS);
   float k = a * 0.5;
   float nv = glm::clamp(NoV, EPS_COS, 1.0f);
@@ -125,11 +145,16 @@ float MicrofacetBRDF::G_Smith(float NoV, float NoL, float roughness) const
 
 RGB MicrofacetBRDF::Fresnel_Schlick(float cosTheta, const RGB& F0) const
 {
+  // Schlick's approximation is a cheap Fresnel curve: reflectance is F0 when
+  // looking straight on and approaches 1 near grazing angles.
   return F0 + (RGB{1.0f} - F0) * glm::pow(1.0f - cosTheta, 5.0f);
 }
 
 float MicrofacetBRDF::D_GGX(float NoH, float roughness) const
 {
+  // GGX/Trowbridge-Reitz normal distribution. This controls the shape of the
+  // specular highlight. Compared with older distributions, GGX has longer
+  // tails, which keeps rough specular reflections visibly broader.
   float a = glm::max(roughness, MIN_ROUGHNESS);
   float a2 = a * a;
   float nh = glm::clamp(NoH, 0.0f, 1.0f);
@@ -162,6 +187,9 @@ Vector MfacetLambertBRDF::Sample(const Vector& wo_local [[maybe_unused]], const 
 
 RGB MfacetLambertBRDF::Evaluate(const Vector& wo_local [[maybe_unused]], const Vector& wi_local [[maybe_unused]], const Material& material) const
 {
+  // The material decides how much of the BRDF value is diffuse vs specular.
+  // This is separate from the path tracer's sampling probability, although in
+  // practice matching them often reduces noise.
   const float specular_weight = material.GetSpecularProbability();
   const float diffuse_weight = 1.0f - specular_weight;
   return diffuse_weight * lambertBRDF.Evaluate(wo_local, wi_local, material) + specular_weight * microBRDF.Evaluate(wo_local, wi_local, material);

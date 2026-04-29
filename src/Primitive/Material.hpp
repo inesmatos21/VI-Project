@@ -60,6 +60,18 @@ public:
   }
   float GetSpecularProbability() const
   {
+    // This value is a good target for the path tracer's probability of choosing
+    // the GGX/specular sampling strategy instead of the Lambert/diffuse one.
+    //
+    // Useful intuition for students:
+    // - high metallic materials should sample GGX more often
+    // - low roughness materials should sample GGX more often
+    // - very rough dielectrics should sample Lambert more often
+    // - F0 estimates how reflective the material is at normal incidence
+    //
+    // A first exercise can use a fixed 0.5 sampling probability in the shader.
+    // A better implementation can call this function so the sampling strategy
+    // follows the material instead of treating every surface the same.
     const RGB f0 = glm::mix(RGB{0.04f}, GetAlbedo(), GetMetallic());
     const float base_probability = std::max(f0.x, std::max(f0.y, f0.z));
     const float roughness_influence = glm::smoothstep(0.0f, 1.0f, GetRoughness() * 0.7f);
