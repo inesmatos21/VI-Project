@@ -37,9 +37,14 @@ struct TextureSampler
 
   RGB Sample(const Vec2& uv) const
   {
+    // A texture lookup starts with the interpolated UV from the ray/triangle
+    // intersection. First bring each coordinate into the texture's valid range
+    // according to the sampler wrap modes.
     const float u = ApplyWrap(uv.x, WrapS);
     const float v = ApplyWrap(uv.y, WrapT);
 
+    // Then choose how to read between texels: nearest picks one pixel, while
+    // linear filtering blends neighboring pixels for a smoother result.
     if (Filter == TextureFilterMode::Nearest)
     {
       return SampleNearest(u, v);
@@ -51,17 +56,24 @@ struct TextureSampler
 private:
   static float ApplyWrap(float value, TextureWrapMode mode)
   {
+    // UVs are normalized texture coordinates, but they can be outside the
+    // [0, 1] range. The wrap mode defines how those out-of-range values map
+    // back onto the finite texture image.
     switch (mode)
     {
       case TextureWrapMode::ClampToEdge:
+        // Clamp keeps sampling at the nearest texture edge.
         return glm::clamp(value, 0.0f, 1.0f);
       case TextureWrapMode::MirroredRepeat:
       {
+        // Mirrored repeat behaves like repeat, but flips direction every
+        // integer interval: 0..1 goes forward, 1..2 goes backward, etc.
         const float wrapped = value - std::floor(value);
         const auto period = static_cast<int>(std::floor(value));
         return period % 2 == 0 ? wrapped : 1.0f - wrapped;
       }
       case TextureWrapMode::Repeat:
+        // Repeat keeps only the fractional part, so 1.25 samples like 0.25.
         return value - std::floor(value);
     }
 
@@ -70,6 +82,9 @@ private:
 
   RGB SampleNearest(float u, float v) const
   {
+    // Nearest filtering maps the normalized UV coordinate directly to the
+    // closest discrete texel. The min guards handle u/v == 1, which would
+    // otherwise produce an index one past the last valid pixel.
     const int x = std::min(static_cast<int>(u * Data.GetWidth()), Data.GetWidth() - 1);
     const int y = std::min(static_cast<int>(v * Data.GetHeight()), Data.GetHeight() - 1);
     return Data.Get(x, y);
@@ -77,14 +92,20 @@ private:
 
   RGB SampleLinear(float u, float v) const
   {
+    // Linear filtering treats the texture as a continuous surface. First map
+    // the normalized UV into image coordinates where integer positions are
+    // texel centers.
     const float x = u * static_cast<float>(Data.GetWidth() - 1);
     const float y = v * static_cast<float>(Data.GetHeight() - 1);
 
+    // Select the four texels around the sample position.
     const int x0 = static_cast<int>(std::floor(x));
     const int y0 = static_cast<int>(std::floor(y));
     const int x1 = std::min(x0 + 1, Data.GetWidth() - 1);
     const int y1 = std::min(y0 + 1, Data.GetHeight() - 1);
 
+    // tx and ty are the fractional distances between the left/right and
+    // bottom/top texels. They become the interpolation weights.
     const float tx = x - static_cast<float>(x0);
     const float ty = y - static_cast<float>(y0);
 
@@ -93,6 +114,8 @@ private:
     const RGB c01 = Data.Get(x0, y1);
     const RGB c11 = Data.Get(x1, y1);
 
+    // Bilinear interpolation: blend horizontally on both rows, then blend
+    // between those two row colors vertically.
     return glm::mix(glm::mix(c00, c10, tx), glm::mix(c01, c11, tx), ty);
   }
 };
