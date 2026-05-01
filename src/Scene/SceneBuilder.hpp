@@ -9,5 +9,4 @@ Scene CreateImportanceSamplingCornellBox();
 Scene WhittedCornellBox();
 Scene SphereScene();
 Scene CreateVeachScene();
-Scene CreateVeachScene2();
 } // namespace VI

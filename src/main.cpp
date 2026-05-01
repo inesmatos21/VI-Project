@@ -10,6 +10,14 @@
 #include "Shaders/VeachShader.hpp"
 #include "Shaders/WhittedShader.hpp"
 
+/*  uncomment the folowiing line to perform
+    post-rendering denoising (Intel OIDN)
+ */
+#define __DENOISE__
+#if defined(__DENOISE__)
+#include "Image/Denoiser.hpp"
+#endif
+
 #include <chrono>
 #include <iostream>
 
@@ -22,7 +30,7 @@ int main()
   constexpr int w = 800;
   constexpr int h = 600;
 
-   /*
+    /*
     // Path Tracing Cornell Box Camera
     constexpr Point Eye = {278, 273, -800};
     constexpr Point At = {278, 273, 200};
@@ -32,9 +40,9 @@ int main()
     Camera camera{Eye, At, Up, w, h, fovHrad};
   PathTracingShader veach_shader{{0.0f, 0.0f, 0.0f}};
   Scene scene = CreateCornellBox();
-   */
+  */
     
-  // /*
+   // /*
    // Veach Camera
    // Camera for the Veach demo scene: centered composition with the plate stack
      // directly under the square lights and a less dominant floor presence.
@@ -47,20 +55,36 @@ int main()
    Camera camera{Eye, At, Up, w, h, fovHrad};
   VeachShader veach_shader{{0.0f, 0.0f, 0.0f}};
   Scene scene = CreateVeachScene ();
-  // */
+   // */
     
   scene.Build();
   Renderer renderer;
-  constexpr int spp = 8;
+  constexpr int spp = 1;
   const auto image = renderer.Render(scene, camera, veach_shader, spp, true);
-
-  ImagePPM::Save(image, "image.ppm");
+    
+ImagePPM::Save(image, "image.ppm");
 
   auto end = std::chrono::system_clock::now();
 
   auto duration = std::chrono::duration<double>(end - begin);
 
-  std::cout << "Time it took to render: " << duration.count() << " sec" << '\n';
+  std::cout << "Time to render: " << duration.count() << " sec" << '\n';
+
+    
+#if defined(__DENOISE__)
+    begin = std::chrono::system_clock::now();
+
+    Denoiser denoise (w,h);
+    const auto denoised_image = denoise.execute (image);
+    
+    ImagePPM::Save(denoised_image, "image-OIDN.ppm");
+
+    end = std::chrono::system_clock::now();
+
+    duration = std::chrono::duration<double>(end - begin);
+
+    std::cout << "Time to denoise: " << duration.count() << " sec" << '\n';
+#endif
 
   return 0;
 }

@@ -42,7 +42,21 @@ public:
   {
     m_Data[x + y * m_Width] += rgb;
   }
+    
+    constexpr float *  GetFloatPtr(void) const {
+        return ((float *)m_Data.data());
+    }
 
+    void SetFromBuffer (float const *colorPtr) {
+        for (int y=0 ; y<m_Height; y++) {
+            for (int x=0 ; x<m_Width; x++) {
+                RGB pix{*colorPtr, *(colorPtr+1), *(colorPtr+2)};
+                m_Data[x + y * m_Width] = pix;
+                colorPtr += 3;
+            }
+        }
+    
+    }
 private:
   int m_Width, m_Height;
   std::vector<RGB> m_Data;

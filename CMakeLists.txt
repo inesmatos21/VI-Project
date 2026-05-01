@@ -6,6 +6,12 @@ project(VI-RT)
 
 add_subdirectory(external/glm)
 
+#find_library(OIDN_LIBRARY NAMES libOpenImageDenoise PATHS /Applications/oidn-2.4.1.arm64.macos/lib)
+
+set(OIDN_LIBRARY "/Applications/oidn-2.4.1.arm64.macos/lib/libOpenImageDenoise.2.4.1.dylib")
+
+message(${OIDN_LIBRARY})
+
 add_executable(VI-RT src/main.cpp
     src/Log/Log.hpp
 
@@ -83,9 +89,11 @@ add_executable(VI-RT src/main.cpp
     src/Shaders/VeachShader.cpp
 )
 target_include_directories(VI-RT PRIVATE src)
+target_include_directories(VI-RT PRIVATE /Applications/oidn-2.4.1.arm64.macos/include/)
 target_precompile_headers(VI-RT PRIVATE src/vi_pch.h)
 
 target_link_libraries(VI-RT PRIVATE glm::glm)
+target_link_libraries(VI-RT PRIVATE ${OIDN_LIBRARY})
 
 if (MSVC)
   target_compile_options(VI-RT PRIVATE /W4)
