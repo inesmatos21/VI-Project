@@ -6,6 +6,10 @@
 - a metallic-roughness texture test object;
 - an emissive ceiling mesh light.
 
+`Sponza/glTF/Sponza.gltf` is mirrored from Khronos glTF Sample Models. It is useful as a larger real-world glTF import test, but it does not include lights or a camera in the model.
+
+`Lantern/glTF/Lantern.gltf` is also mirrored from Khronos glTF Sample Models. It is a lighter core-glTF textured model and is better for quick classroom demos.
+
 Recommended external classroom assets from Khronos glTF Sample Assets:
 
 - Water Bottle: CC0, compact, and focused on core metallic-roughness materials.

@@ -73,7 +73,11 @@ RGB PathTracingShader::DoExecute(const Ray& ray, const Scene& scene, const Inter
 
   if (material.GetEmissionPower() > 0.0f)
   {
-    return allow_emissive ? material.GetRadiance() : RGB{0.0f};
+    const RGB radiance = material.GetRadiance(intersection.TexCoord);
+    if (std::max(radiance.x, std::max(radiance.y, radiance.z)) > 0.0f)
+    {
+      return allow_emissive ? radiance : RGB{0.0f};
+    }
   }
 
   color += IndirectIllumination(ray, scene, intersection, material, depth, allow_emissive);

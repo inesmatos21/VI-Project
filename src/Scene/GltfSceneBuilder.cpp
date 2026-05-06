@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cmath>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -31,6 +32,7 @@
 #include "Scene/SceneBuilder.hpp"
 
 #include "Image/Image.hpp"
+#include "Light/Light.hpp"
 #include "Math/RGB.hpp"
 #include "Math/Vector.hpp"
 #include "Primitive/Geometry/Mesh.hpp"
@@ -268,6 +270,11 @@ std::vector<int> ImportMaterials(const tinygltf::Model& model, Scene& scene)
     {
       metallic_roughness_texture = CreateTextureSampler(model, pbr.metallicRoughnessTexture.index);
     }
+    std::optional<TextureSampler> emission_texture = std::nullopt;
+    if (gltf_material.emissiveTexture.index >= 0)
+    {
+      emission_texture = CreateTextureSampler(model, gltf_material.emissiveTexture.index);
+    }
 
     material_map.push_back(scene.AddMaterial({
         .Name = name,
@@ -278,6 +285,7 @@ std::vector<int> ImportMaterials(const tinygltf::Model& model, Scene& scene)
         .EmissionPower = glm::length(emission_color) <= 0.0f ? 0.0f : ReadEmissiveStrength(gltf_material),
         .AlbedoTexture = std::move(albedo_texture),
         .MetallicRoughnessTexture = std::move(metallic_roughness_texture),
+        .EmissionTexture = std::move(emission_texture),
     }));
   }
 
@@ -337,6 +345,64 @@ Vector ComputeFaceNormal(const Point& v0, const Point& v1, const Point& v2)
   const Vector normal = glm::cross(v1 - v0, v2 - v0);
   const float length = glm::length(normal);
   return length > 0.0f ? normal / length : Vector{0.f, 1.f, 0.f};
+}
+
+std::optional<Camera> CreateCameraFromNode(const tinygltf::Model& model, const tinygltf::Node& node, const glm::mat4& transform, int camera_width, int camera_height)
+{
+  if (node.camera < 0)
+  {
+    return std::nullopt;
+  }
+  if (static_cast<size_t>(node.camera) >= model.cameras.size())
+  {
+    throw std::runtime_error("glTF node references an invalid camera");
+  }
+
+  const tinygltf::Camera& gltf_camera = model.cameras[node.camera];
+  if (gltf_camera.type != "perspective")
+  {
+    // This renderer's Camera is perspective-only. glTF also supports
+    // orthographic cameras, but importing those would require a different ray
+    // generation model.
+    return std::nullopt;
+  }
+
+  const double yfov = gltf_camera.perspective.yfov;
+  if (yfov <= 0.0 || !std::isfinite(yfov))
+  {
+    throw std::runtime_error("glTF perspective camera has an invalid yfov");
+  }
+
+  // In glTF, a camera looks down its local -Z axis and its local +Y axis is up.
+  // The node transform places that local camera frame into world space.
+  const glm::vec4 world_eye = transform * glm::vec4{0.f, 0.f, 0.f, 1.f};
+  const glm::vec4 world_forward = transform * glm::vec4{0.f, 0.f, -1.f, 0.f};
+  const glm::vec4 world_up = transform * glm::vec4{0.f, 1.f, 0.f, 0.f};
+  const Vector forward = glm::normalize(Vector{world_forward.x, world_forward.y, world_forward.z});
+  const Vector up = glm::normalize(Vector{world_up.x, world_up.y, world_up.z});
+
+  const Point eye{world_eye.x, world_eye.y, world_eye.z};
+  const Point at = eye + forward;
+
+  // glTF stores vertical field of view for perspective cameras. This Camera
+  // implementation also uses that angle to define the viewport height; the
+  // final aspect ratio comes from the render resolution.
+  return Camera{eye, at, up, camera_width, camera_height, static_cast<float>(yfov)};
+}
+
+Camera CreateDefaultCameraForBounds(const BoundingBox& bounds, int camera_width, int camera_height)
+{
+  const Point center = 0.5f * (bounds.Min + bounds.Max);
+  const Vector size = bounds.Max - bounds.Min;
+  const float radius = 0.5f * glm::length(size);
+  const float fov = 45.0f * glm::pi<float>() / 180.0f;
+  const float distance = radius / std::tan(fov * 0.5f);
+
+  // If the glTF file has no camera, frame the imported geometry from the
+  // negative Z direction. This is much better for object-style sample models
+  // than reusing a hard-coded camera from another scene.
+  const Point eye = center + Vector{0.0f, size.y * 0.1f, -distance * 1.4f};
+  return Camera{eye, center, Vector{0.f, 1.f, 0.f}, camera_width, camera_height, fov};
 }
 
 void ImportPrimitive(const tinygltf::Model& model, const tinygltf::Mesh& mesh, const tinygltf::Primitive& primitive, const glm::mat4& transform, const std::vector<int>& material_map, int default_material, Scene& scene)
@@ -410,7 +476,7 @@ void ImportPrimitive(const tinygltf::Model& model, const tinygltf::Mesh& mesh, c
   scene.AddPrimitive(Mesh{mesh_name, std::move(triangles)}, material);
 }
 
-void ImportNode(const tinygltf::Model& model, int node_index, const glm::mat4& parent_transform, const std::vector<int>& material_map, int default_material, Scene& scene)
+void ImportNode(const tinygltf::Model& model, int node_index, const glm::mat4& parent_transform, const std::vector<int>& material_map, int default_material, int camera_width, int camera_height, Scene& scene)
 {
   if (node_index < 0 || static_cast<size_t>(node_index) >= model.nodes.size())
   {
@@ -419,6 +485,14 @@ void ImportNode(const tinygltf::Model& model, int node_index, const glm::mat4& p
 
   const tinygltf::Node& node = model.nodes[node_index];
   const glm::mat4 transform = parent_transform * GetNodeTransform(node);
+
+  if (scene.GetCamera() == nullptr)
+  {
+    if (std::optional<Camera> camera = CreateCameraFromNode(model, node, transform, camera_width, camera_height))
+    {
+      scene.SetCamera(std::move(camera.value()));
+    }
+  }
 
   if (node.mesh >= 0)
   {
@@ -436,7 +510,7 @@ void ImportNode(const tinygltf::Model& model, int node_index, const glm::mat4& p
 
   for (const int child : node.children)
   {
-    ImportNode(model, child, transform, material_map, default_material, scene);
+    ImportNode(model, child, transform, material_map, default_material, camera_width, camera_height, scene);
   }
 }
 
@@ -464,7 +538,7 @@ tinygltf::Model LoadModel(const std::filesystem::path& path)
 
 } // namespace
 
-Scene CreateGltfScene(const std::filesystem::path& path)
+Scene CreateGltfScene(const std::filesystem::path& path, int camera_width, int camera_height)
 {
   tinygltf::Model model = LoadModel(path);
 
@@ -485,8 +559,24 @@ Scene CreateGltfScene(const std::filesystem::path& path)
 
   for (const int node : model.scenes[scene_index].nodes)
   {
-    ImportNode(model, node, glm::mat4{1.f}, material_map, default_material, scene);
+    ImportNode(model, node, glm::mat4{1.f}, material_map, default_material, camera_width, camera_height, scene);
   }
+
+  if (scene.GetCamera() == nullptr && scene.GetPrimitiveCount() > 0)
+  {
+    scene.SetCamera(CreateDefaultCameraForBounds(scene.ComputeBoundingBox(), camera_width, camera_height));
+  }
+
+  // Most object-style glTF sample models do not contain renderable lights.
+  // Add a soft preview ambient light so classroom assets such as Lantern are
+  // visible without hand-building a separate lighting setup around them.
+  const int preview_ambient_material = scene.AddMaterial({
+      .Name = "glTF Preview Ambient",
+      .Albedo = RGB{1.f},
+      .EmissionColor = RGB{1.f},
+      .EmissionPower = 0.35f,
+  });
+  scene.AddLight(std::make_unique<AmbientLight>(preview_ambient_material));
 
   return scene;
 }

@@ -169,6 +169,16 @@ void Scene::AddLight(std::unique_ptr<Light> light)
   m_Lights.emplace_back(std::move(light));
 }
 
+void Scene::SetCamera(Camera camera)
+{
+  m_Camera = std::move(camera);
+}
+
+const Camera* Scene::GetCamera() const
+{
+  return m_Camera.has_value() ? &m_Camera.value() : nullptr;
+}
+
 const Primitive& Scene::GetPrimitive(int primitive_index) const
 {
   return m_Primitives[primitive_index];

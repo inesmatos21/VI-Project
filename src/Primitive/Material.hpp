@@ -130,12 +130,13 @@ struct MaterialDesc
   float EmissionPower = 0.f;
   std::optional<TextureSampler> AlbedoTexture = std::nullopt;
   std::optional<TextureSampler> MetallicRoughnessTexture = std::nullopt;
+  std::optional<TextureSampler> EmissionTexture = std::nullopt;
 };
 
 class Material
 {
 public:
-  Material(MaterialDesc desc) : m_Name{desc.Name}, m_Albedo{desc.Albedo}, m_EmissionColor{desc.EmissionColor}, m_Metallic{desc.Metallic}, m_Roughness{desc.Roughness}, m_EmissionPower{desc.EmissionPower}, m_AlbedoTexture{std::move(desc.AlbedoTexture)}, m_MetallicRoughnessTexture{std::move(desc.MetallicRoughnessTexture)} {}
+  Material(MaterialDesc desc) : m_Name{desc.Name}, m_Albedo{desc.Albedo}, m_EmissionColor{desc.EmissionColor}, m_Metallic{desc.Metallic}, m_Roughness{desc.Roughness}, m_EmissionPower{desc.EmissionPower}, m_AlbedoTexture{std::move(desc.AlbedoTexture)}, m_MetallicRoughnessTexture{std::move(desc.MetallicRoughnessTexture)}, m_EmissionTexture{std::move(desc.EmissionTexture)} {}
 
   const std::string& GetName() const
   {
@@ -165,6 +166,16 @@ public:
   constexpr RGB GetRadiance() const
   {
     return m_EmissionColor * m_EmissionPower;
+  }
+
+  RGB GetRadiance(const Vec2& uv) const
+  {
+    if (m_EmissionTexture.has_value())
+    {
+      return m_EmissionColor * m_EmissionTexture->Sample(uv) * m_EmissionPower;
+    }
+
+    return GetRadiance();
   }
 
   constexpr float GetRoughness() const
@@ -248,5 +259,6 @@ private:
 
   std::optional<TextureSampler> m_AlbedoTexture{std::nullopt};
   std::optional<TextureSampler> m_MetallicRoughnessTexture{std::nullopt};
+  std::optional<TextureSampler> m_EmissionTexture{std::nullopt};
 };
 } // namespace VI

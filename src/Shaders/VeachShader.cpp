@@ -150,7 +150,12 @@ RGB VeachShader::Execute(const Ray& ray, const Scene& scene) const
   const Primitive& prim = scene.GetPrimitive(intersection.ObjectIndex);
   const Material& mat = scene.GetMaterial(prim.MaterialIndex);
 
-  if (mat.GetEmissionPower() > 0.f) return mat.GetRadiance();
+  if (mat.GetEmissionPower() > 0.f)
+  {
+    const RGB radiance = mat.GetRadiance(intersection.TexCoord);
+    if (std::max(radiance.x, std::max(radiance.y, radiance.z)) > 0.f)
+      return radiance;
+  }
 
   if constexpr (kVeachMode == VeachMode::NEEOnly)
   {
