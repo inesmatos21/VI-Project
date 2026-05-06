@@ -1,7 +1,18 @@
 #include "Scene/SceneBuilder.hpp"
 
+#include <glm/geometric.hpp>
+#include <glm/trigonometric.hpp>
+
+#include <memory>
+#include <string>
+#include <string_view>
+#include <vector>
+
+#include "Light/Light.hpp"
+#include "Math/Vector.hpp"
 #include "Primitive/Geometry/Mesh.hpp"
 #include "Primitive/Geometry/Sphere.hpp"
+#include "Primitive/Geometry/Triangle.hpp"
 #include "Scene/Scene.hpp"
 
 namespace VI
@@ -746,7 +757,6 @@ Scene CreateVeachScene()
   const int plate1_mat = scene.AddMaterial({.Name = "Plate Mirror-Like", .Albedo = {0.92f, 0.48f, 0.48f}, .Roughness = 0.05f, .Metallic = 1.f});
   const int plate2_mat = scene.AddMaterial({.Name = "Plate Glossy", .Albedo = {0.48f, 0.92f, 0.48f}, .Roughness = 0.2f, .Metallic = 1.f});
   const int plate3_mat = scene.AddMaterial({.Name = "Plate Broad Gloss", .Albedo = {0.48f, 0.48f, 0.92f}, .Roughness = 0.35f, .Metallic = 1.f});
-    const int plate4_mat = scene.AddMaterial({.Name = "Plate Broader Gloss", .Albedo = {0.6f, 0.6f, 0.6f}, .Roughness = 0.5f, .Metallic = 1.f});
 
   // Three square lights with the same tiny/medium/large progression as the
   // reference image, kept roughly equal in total emitted flux.

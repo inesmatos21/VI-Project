@@ -20,6 +20,7 @@ public:
   const BoundingBox& GetBoundingBox() const;
 
   std::tuple<Point, Point, Point> GetVertices() const;
+  std::tuple<Vec2, Vec2, Vec2> GetTexCoords() const;
   Vector GetNormal() const noexcept;
   float GetArea() const noexcept;
 

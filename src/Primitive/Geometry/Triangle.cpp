@@ -82,6 +82,11 @@ std::tuple<Point, Point, Point> Triangle::GetVertices() const
   return std::make_tuple(m_V1, m_V2, m_V3);
 }
 
+std::tuple<Vec2, Vec2, Vec2> Triangle::GetTexCoords() const
+{
+  return std::make_tuple(m_UV1, m_UV2, m_UV3);
+}
+
 Vector Triangle::GetNormal() const noexcept
 {
   return m_Normal;

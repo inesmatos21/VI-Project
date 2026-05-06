@@ -97,7 +97,6 @@ RGB PathTracingShader::DirectIllumination(const Ray& ray, const Scene& scene, co
 
 RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, const Intersection& intersection, const Material& material, int depth, bool allow_emissive [[maybe_unused]]) const
 {
-    const bool do_MIS = true;
   const Vector shading_normal = FaceForward(intersection.Normal, -ray.Direction);
   const OrthonormalBasis basis{shading_normal};
   const Vector wo_local = basis.WorldToLocal(-ray.Direction);
@@ -109,6 +108,7 @@ RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, 
   MfacetLambertBRDF microfacetBRDF{};
   // the probability of selecting the specular (GGX) path is BRDF dependent
   const float microfacet_probability = material.GetSpecularProbability(intersection.TexCoord);
+  const float diffuse_probability = 1.0f - microfacet_probability;
 
   // stochastically select whether to sample the direction according to specular (microfacet) or diffuse (lambertian)
   const bool sample_microfacet = Random::RandomFloat(0.f, 1.f) < microfacet_probability;
@@ -127,22 +127,13 @@ RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, 
   // could have been sampled
   const float diffuse_pdf = microfacetBRDF.PDF(wo_local, wi_local, material, MODE::LAMBERT_MODE, intersection.TexCoord);
   const float microfacet_pdf = microfacetBRDF.PDF(wo_local, wi_local, material, MODE::GGX_MODE, intersection.TexCoord);
-  // this is the actual probability with which it was sampled
-  float pdf = (sample_microfacet ? microfacet_pdf : diffuse_pdf);
+  // this is the actual mixture probability with which this direction could
+  // have been sampled by either BRDF branch.
+  const float pdf = microfacet_probability * microfacet_pdf + diffuse_probability * diffuse_pdf;
   if (pdf <= 0.f)    return RGB{0.0f};
-    
-  // get MIS weight
-    // THis is the weight as defined in PBRT book
-    // See eq. 2.14 (balance) and 2.15 (power) in
-    //https://pbr-book.org/4ed/Monte_Carlo_Integration/Improving_Efficiency#eq:balance-heuristic
-    float w_MIS = 1.f;
-    if (do_MIS) {
-        w_MIS  = (sample_microfacet ? PowerHeuristic(microfacet_pdf*microfacet_probability, diffuse_pdf*(1.f-microfacet_probability)) : PowerHeuristic(diffuse_pdf*(1.f-microfacet_probability), microfacet_pdf*microfacet_probability));
-    }
-    
      
   const float cos_theta = wi_local.z;
-  const RGB throughput = w_MIS * f * cos_theta / pdf;
+  const RGB throughput = f * cos_theta / pdf;
     
   // Russian Roulette
   float continuation_probability = 1.0f;
@@ -160,9 +151,11 @@ RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, 
   RGB incoming_radiance = m_BackgroundColor;
   if (scene.Trace(scattered_ray, scattered_intersection))
   {
-    // if intersected get radiance
-    const bool next_allow_emissive = sample_microfacet;
-    incoming_radiance = DoExecute(scattered_ray, scene, scattered_intersection, depth + 1, next_allow_emissive);
+    // Direct light sampling handles non-primary emitter contributions. Keep
+    // primary emitter visibility, but avoid randomly accepting light hits based
+    // on which BRDF branch happened to generate the scattered ray.
+    constexpr bool allow_emissive_on_indirect_hit = false;
+    incoming_radiance = DoExecute(scattered_ray, scene, scattered_intersection, depth + 1, allow_emissive_on_indirect_hit);
   }
 
   return ClampRadiance(throughput * incoming_radiance / continuation_probability);

@@ -1,16 +1,19 @@
 #pragma once
 
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <span>
+#include <vector>
+
 #include "Camera/Camera.hpp"
 #include "Light/Light.hpp"
 #include "Math/DiscreteDistribution.hpp"
 #include "Primitive/AccelerationStructures/GridAccelerationStructure.hpp"
+#include "Primitive/BoundingBox.hpp"
 #include "Primitive/Geometry/Geometry.hpp"
 #include "Primitive/Material.hpp"
 #include "Primitive/Primitive.hpp"
-
-#include <memory>
-#include <optional>
-#include <span>
 
 namespace VI
 {

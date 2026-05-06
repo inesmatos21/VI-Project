@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "Primitive/AccelerationStructures/AccelerationStructure.hpp"
 #include "Primitive/BoundingBox.hpp"
 

@@ -405,6 +405,19 @@ Camera CreateDefaultCameraForBounds(const BoundingBox& bounds, int camera_width,
   return Camera{eye, center, Vector{0.f, 1.f, 0.f}, camera_width, camera_height, fov};
 }
 
+bool HasImportedRenderableLight(const Scene& scene)
+{
+  for (const auto& light : scene.GetLights())
+  {
+    if (light->GetType() == LightType::Area || light->GetType() == LightType::Point)
+    {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void ImportPrimitive(const tinygltf::Model& model, const tinygltf::Mesh& mesh, const tinygltf::Primitive& primitive, const glm::mat4& transform, const std::vector<int>& material_map, int default_material, Scene& scene)
 {
   if (primitive.mode != -1 && primitive.mode != TINYGLTF_MODE_TRIANGLES)
@@ -567,16 +580,19 @@ Scene CreateGltfScene(const std::filesystem::path& path, int camera_width, int c
     scene.SetCamera(CreateDefaultCameraForBounds(scene.ComputeBoundingBox(), camera_width, camera_height));
   }
 
-  // Most object-style glTF sample models do not contain renderable lights.
-  // Add a soft preview ambient light so classroom assets such as Lantern are
-  // visible without hand-building a separate lighting setup around them.
-  const int preview_ambient_material = scene.AddMaterial({
-      .Name = "glTF Preview Ambient",
-      .Albedo = RGB{1.f},
-      .EmissionColor = RGB{1.f},
-      .EmissionPower = 0.35f,
-  });
-  scene.AddLight(std::make_unique<AmbientLight>(preview_ambient_material));
+  if (!HasImportedRenderableLight(scene))
+  {
+    // Most object-style glTF sample models do not contain renderable lights.
+    // Add a soft preview ambient light so classroom assets such as Lantern are
+    // visible without hand-building a separate lighting setup around them.
+    const int preview_ambient_material = scene.AddMaterial({
+        .Name = "glTF Preview Ambient",
+        .Albedo = RGB{1.f},
+        .EmissionColor = RGB{1.f},
+        .EmissionPower = 0.35f,
+    });
+    scene.AddLight(std::make_unique<AmbientLight>(preview_ambient_material));
+  }
 
   return scene;
 }

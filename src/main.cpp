@@ -87,8 +87,8 @@ int main(int argc, char** argv)
   auto begin = std::chrono::system_clock::now();
   const auto options = ParseCommandLine(argc, argv);
 
-  constexpr int w = 640;
-  constexpr int h = 480;
+  constexpr int w = 1280;
+  constexpr int h = 720;
 
   // /*
   // Path Tracing Cornell Box Camera
@@ -120,21 +120,13 @@ int main(int argc, char** argv)
     PathTracingShader path_tracing_shader{{0.0f, 0.0f, 0.0f}, DirectIlluminationMode::Importance};
     Scene scene = CreateGltfScene(*options.ScenePath, w, h);
     scene.Build();
-    while (true)
-    {
-      const Camera& render_camera = scene.GetCamera() != nullptr ? *scene.GetCamera() : camera;
-      image = renderer.Render(scene, render_camera, path_tracing_shader, options.SamplesPerPixel, true);
-
-      Image raylib_image = ConvertImage(image);
-
-      Texture texture = TexureLoadFromImage(raylib_image);
-      DrawTexture(texture);
-    }
+    const Camera& render_camera = scene.GetCamera() != nullptr ? *scene.GetCamera() : camera;
+    image = renderer.Render(scene, render_camera, path_tracing_shader, options.SamplesPerPixel, true);
   }
   else
   {
     VeachShader veach_shader{{0.0f, 0.0f, 0.0f}};
-    Scene scene = CreateVeachScene2();
+    Scene scene = CreateVeachScene();
     scene.Build();
     image = renderer.Render(scene, camera, veach_shader, options.SamplesPerPixel, true);
   }

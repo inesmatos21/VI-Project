@@ -1,9 +1,28 @@
 #include "Scene/Scene.hpp"
 
+#include <glm/geometric.hpp>
+
+#include <algorithm>
+#include <cassert>
+#include <cstddef>
+#include <memory>
+#include <span>
+#include <utility>
+#include <variant>
+#include <vector>
+
+#include "Camera/Camera.hpp"
+#include "Light/Light.hpp"
 #include "Math/DiscreteDistribution.hpp"
 #include "Math/Math.hpp"
+#include "Math/RGB.hpp"
+#include "Primitive/AccelerationStructures/GridAccelerationStructure.hpp"
+#include "Primitive/BoundingBox.hpp"
 #include "Primitive/Geometry/Geometry.hpp"
 #include "Primitive/Geometry/Mesh.hpp"
+#include "Primitive/Geometry/Triangle.hpp"
+#include "Primitive/Material.hpp"
+#include "Primitive/Primitive.hpp"
 #include "Ray/Intersection.hpp"
 #include "Ray/Ray.hpp"
 

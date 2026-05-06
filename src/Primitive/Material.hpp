@@ -250,6 +250,11 @@ public:
     return m_EmissionPower;
   }
 
+  bool HasEmissionTexture() const
+  {
+    return m_EmissionTexture.has_value();
+  }
+
 private:
   std::string m_Name;
   RGB m_Albedo, m_EmissionColor;

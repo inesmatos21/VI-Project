@@ -36,6 +36,7 @@ struct AreaLightSample
 {
   Point Position;
   Vector Normal;
+  Vec2 TexCoord{0.f};
   float AreaPDF{0.f};
 };
 
@@ -68,6 +69,7 @@ std::optional<AreaLightSample> SampleMeshAreaLight(const Mesh& mesh)
   }
 
   const auto [v1, v2, v3] = sampled_triangle->GetVertices();
+  const auto [uv1, uv2, uv3] = sampled_triangle->GetTexCoords();
   const float u1 = Random::RandomFloat(0.f, 1.f);
   const float u2 = Random::RandomFloat(0.f, 1.f);
   const float su1 = glm::sqrt(u1);
@@ -78,6 +80,7 @@ std::optional<AreaLightSample> SampleMeshAreaLight(const Mesh& mesh)
   return AreaLightSample{
       .Position = b0 * v1 + b1 * v2 + b2 * v3,
       .Normal = glm::normalize(sampled_triangle->GetNormal()),
+      .TexCoord = b0 * uv1 + b1 * uv2 + b2 * uv3,
       .AreaPDF = 1.f / total_area,
   };
 }
@@ -254,8 +257,10 @@ RGB EstimateDirectIllumination(const Ray& ray, const Scene& scene, const Interse
     // G = cos (theta_N) * cos (theta_L) / d^2
     const float geometry_term = glm::min((cos_surface * cos_light) / distance_squared, MAX_GEOMETRY_TERM);
 
+    const RGB area_light_radiance = light_material.HasEmissionTexture() ? light_material.GetRadiance(area_sample->TexCoord) : light_radiance;
+
     // Lr = bsdf * L * G / pdf
-    return (bsdf * light_radiance * geometry_term) / area_sample->AreaPDF;
+    return (bsdf * area_light_radiance * geometry_term) / area_sample->AreaPDF;
   }
 
   return RGB{0.f};
