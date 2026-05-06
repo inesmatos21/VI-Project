@@ -58,6 +58,9 @@ add_executable(VI-RT src/main.cpp
     src/Renderer/DummyRenderer.hpp
 
     # Image
+    src/Image/Denoiser.hpp
+    src/Image/Denoiser.cpp
+
     src/Image/Image.hpp
     src/Image/FileImages.hpp
     src/Image/FileImages.cpp

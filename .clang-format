@@ -12,7 +12,7 @@ IndentPPDirectives: None
 BreakBeforeBraces: Allman
 
 # Line length
-ColumnLimit: 300
+ColumnLimit: 0
 
 # Alignment
 AlignConsecutiveAssignments: false

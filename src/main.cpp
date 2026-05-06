@@ -72,7 +72,7 @@ int main()
   begin = std::chrono::system_clock::now();
 
   Denoiser denoise(w, h);
-  const auto denoised_image = denoise.execute(image);
+  const auto denoised_image = denoise.Execute(image);
 
   ImagePPM::Save(denoised_image, "image-OIDN.ppm");
 
