@@ -2,6 +2,8 @@
 
 #include "Math/Vector.hpp"
 
+#include <glm/geometric.hpp>
+
 namespace VI
 {
 constexpr float EPSILON = 1e-3f;

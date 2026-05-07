@@ -394,14 +394,18 @@ Camera CreateDefaultCameraForBounds(const BoundingBox& bounds, int camera_width,
 {
   const Point center = 0.5f * (bounds.Min + bounds.Max);
   const Vector size = bounds.Max - bounds.Min;
-  const float radius = 0.5f * glm::length(size);
   const float fov = 45.0f * glm::pi<float>() / 180.0f;
-  const float distance = radius / std::tan(fov * 0.5f);
+  const float aspect = static_cast<float>(camera_width) / static_cast<float>(camera_height);
+  const float tan_half_fov = std::tan(fov * 0.5f);
+  const float half_depth = 0.5f * size.z;
+  const float distance_for_height = (0.5f * size.y) / tan_half_fov;
+  const float distance_for_width = (0.5f * size.x) / (tan_half_fov * aspect);
+  const float distance = half_depth + std::max(distance_for_height, distance_for_width) * 1.1f;
 
   // If the glTF file has no camera, frame the imported geometry from the
   // negative Z direction. This is much better for object-style sample models
   // than reusing a hard-coded camera from another scene.
-  const Point eye = center + Vector{0.0f, size.y * 0.1f, -distance * 1.4f};
+  const Point eye = center + Vector{0.0f, size.y * 0.1f, -distance};
   return Camera{eye, center, Vector{0.f, 1.f, 0.f}, camera_width, camera_height, fov};
 }
 

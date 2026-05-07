@@ -7,6 +7,7 @@
 
 #include <glm/common.hpp>
 
+#include "Math/Math.hpp"
 #include "Math/Vector.hpp"
 #include "Primitive/BoundingBox.hpp"
 #include "Primitive/Geometry/Geometry.hpp"
@@ -14,6 +15,16 @@
 #include "Scene/Scene.hpp"
 
 namespace VI {
+namespace {
+
+constexpr int GridResolution = 50;
+constexpr float MinCellSize = 1e-4f;
+
+float ComputeCellSize(float min, float max, int cell_count) {
+  return std::max((max - min) / cell_count, MinCellSize);
+}
+
+} // namespace
 
 GridAccelerationStructure
 GridAccelerationStructure::Create(const Scene &scene) {
@@ -25,6 +36,9 @@ GridAccelerationStructure::Create(const Scene &scene) {
 
 bool GridAccelerationStructure::Trace(const Ray &ray, const Scene &scene,
                                       Intersection &intersection) const {
+  if (m_Cells.empty() || m_Nx <= 0 || m_Ny <= 0 || m_Nz <= 0)
+    return false;
+
   float tmin, tmax;
   if (!m_BoundingBox.Intersect(ray, tmin, tmax))
     return false;
@@ -69,7 +83,7 @@ bool GridAccelerationStructure::Trace(const Ray &ray, const Scene &scene,
                         : std::numeric_limits<float>::infinity();
 
   bool hit = false;
-  float closestT = tmax;
+  float closestT = tmax + EPSILON;
   Intersection closest_intersection{};
 
   while (ix >= 0 && ix < m_Nx && iy >= 0 && iy < m_Ny && iz >= 0 && iz < m_Nz) {
@@ -103,7 +117,7 @@ bool GridAccelerationStructure::Trace(const Ray &ray, const Scene &scene,
       }
     }
 
-    if (closestT < std::min({t_max_x, t_max_y, t_max_z}))
+    if (std::min({t_max_x, t_max_y, t_max_z}) > tmax + EPSILON)
       break;
   }
 
@@ -116,13 +130,22 @@ bool GridAccelerationStructure::Trace(const Ray &ray, const Scene &scene,
 }
 
 void GridAccelerationStructure::Build(const Scene &scene) {
+  m_Cells.clear();
+  m_Nx = m_Ny = m_Nz = 0;
+  m_CellSizeX = m_CellSizeY = m_CellSizeZ = 0.0f;
+
+  if (scene.GetPrimitiveCount() == 0) {
+    m_BoundingBox = BoundingBox{};
+    return;
+  }
+
   m_BoundingBox = scene.ComputeBoundingBox();
 
-  m_Nx = m_Ny = m_Nz = 50;
+  m_Nx = m_Ny = m_Nz = GridResolution;
 
-  m_CellSizeX = (m_BoundingBox.Max.x - m_BoundingBox.Min.x) / m_Nx;
-  m_CellSizeY = (m_BoundingBox.Max.y - m_BoundingBox.Min.y) / m_Ny;
-  m_CellSizeZ = (m_BoundingBox.Max.z - m_BoundingBox.Min.z) / m_Nz;
+  m_CellSizeX = ComputeCellSize(m_BoundingBox.Min.x, m_BoundingBox.Max.x, m_Nx);
+  m_CellSizeY = ComputeCellSize(m_BoundingBox.Min.y, m_BoundingBox.Max.y, m_Ny);
+  m_CellSizeZ = ComputeCellSize(m_BoundingBox.Min.z, m_BoundingBox.Max.z, m_Nz);
 
   m_Cells.resize(m_Nx * m_Ny * m_Nz);
 
@@ -142,7 +165,7 @@ void GridAccelerationStructure::Build(const Scene &scene) {
   for (size_t i = 0; i < scene.GetPrimitiveCount(); ++i) {
     const auto &obj_bounds = GetBoundingBox(scene.GetPrimitive(i).Geometry);
 
-    const float epsilon = 1e-4f;
+    const float epsilon = EPSILON;
     Vector min = obj_bounds.Min - Vector{epsilon, epsilon, epsilon};
     Vector max = obj_bounds.Max + Vector{epsilon, epsilon, epsilon};
 

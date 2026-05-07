@@ -1,5 +1,9 @@
 #include "Primitive/Geometry/Geometry.hpp"
 
+#include <variant>
+
+#include "Primitive/BoundingBox.hpp"
+
 namespace VI
 {
 bool Intersect(const Geometry& geom, const Ray& ray, Intersection& intersection)

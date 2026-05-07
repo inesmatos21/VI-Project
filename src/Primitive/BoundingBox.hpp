@@ -3,6 +3,12 @@
 #include "Math/Vector.hpp"
 #include "Ray/Ray.hpp"
 
+#include <glm/common.hpp>
+
+#include <algorithm>
+#include <cmath>
+#include <limits>
+
 namespace VI
 {
 constexpr float MachineEpsilon = std::numeric_limits<float>::epsilon() * 0.5;
@@ -19,30 +25,12 @@ struct BoundingBox
 
   constexpr void Update(const Point& p)
   {
-    if (p.x < Min.x)
-    {
-      Min.x = p.x;
-    }
-    else if (p.x > Max.x)
-    {
-      Max.x = p.x;
-    }
-    if (p.y < Min.y)
-    {
-      Min.y = p.y;
-    }
-    else if (p.y > Max.y)
-    {
-      Max.y = p.y;
-    }
-    if (p.z < Min.z)
-    {
-      Min.z = p.z;
-    }
-    else if (p.z > Max.z)
-    {
-      Max.z = p.z;
-    }
+    Min.x = glm::min(Min.x, p.x);
+    Min.y = glm::min(Min.y, p.y);
+    Min.z = glm::min(Min.z, p.z);
+    Max.x = glm::max(Max.x, p.x);
+    Max.y = glm::max(Max.y, p.y);
+    Max.z = glm::max(Max.z, p.z);
   }
 
   /*
@@ -54,9 +42,33 @@ struct BoundingBox
    * or https://doi.org/10.1007/978-1-4842-7185-8_2
    *
    */
-  constexpr bool Intersect(const Ray& ray [[maybe_unused]], float& tmin [[maybe_unused]], float& tmax [[maybe_unused]]) const
+  bool Intersect(const Ray& ray, float& tmin, float& tmax) const
   {
-    return true;
+    tmin = 0.0f;
+    tmax = std::numeric_limits<float>::infinity();
+
+    const auto intersect_axis = [&](float origin, float direction, float min, float max) {
+      if (std::abs(direction) <= MachineEpsilon)
+      {
+        return origin >= min && origin <= max;
+      }
+
+      const float inv_direction = 1.0f / direction;
+      float near_t = (min - origin) * inv_direction;
+      float far_t = (max - origin) * inv_direction;
+      if (near_t > far_t)
+      {
+        std::swap(near_t, far_t);
+      }
+
+      tmin = std::max(tmin, near_t);
+      tmax = std::min(tmax, far_t);
+      return tmin <= tmax;
+    };
+
+    return intersect_axis(ray.Origin.x, ray.Direction.x, Min.x, Max.x) &&
+           intersect_axis(ray.Origin.y, ray.Direction.y, Min.y, Max.y) &&
+           intersect_axis(ray.Origin.z, ray.Direction.z, Min.z, Max.z);
   }
 
   constexpr void Update(const BoundingBox& other)

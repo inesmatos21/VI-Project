@@ -131,37 +131,13 @@ void Scene::Build()
 bool Scene::Trace(const Ray& ray, Intersection& intersection) const
 {
   intersection.Distance = -1;
-
-  for (size_t i = 0; i < m_Primitives.size(); i++)
-  {
-    const auto& primitive = m_Primitives[i];
-
-    Intersection temp_intersection{};
-
-    if (Intersect(primitive.Geometry, ray, temp_intersection))
-    {
-      if (intersection.Distance == -1 || intersection.Distance > temp_intersection.Distance)
-      {
-        intersection = temp_intersection;
-        intersection.ObjectIndex = i;
-      }
-    }
-  }
-
-  return intersection.Distance != -1;
+  return m_AccelerationStructure.Trace(ray, *this, intersection);
 }
 
 bool Scene::Visibility(const Ray& ray, float max_distance) const
 {
-  for (const auto& primitive : m_Primitives)
-  {
-    Intersection intersection{};
-    if (Intersect(primitive.Geometry, ray, intersection) && intersection.Distance < max_distance - EPSILON)
-    {
-      return false;
-    }
-  }
-  return true;
+  Intersection intersection{};
+  return !Trace(ray, intersection) || intersection.Distance >= max_distance - EPSILON;
 }
 
 void Scene::AddPrimitive(Geometry primitive, int material_index)
