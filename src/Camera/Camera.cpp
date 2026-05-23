@@ -55,7 +55,9 @@ Ray Camera::GenerateRay(int x, int y, glm::vec2 jitter) const
 
   Vector direction = glm::normalize(pixel_sample - origin);
 
-  return {.Origin = origin, .Direction = direction};
+  float ray_time = Random::RandomFloat();
+
+  return {.Origin = origin, .Direction = direction, .Time = ray_time};
 }
 
 } // namespace VI

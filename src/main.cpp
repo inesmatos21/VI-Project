@@ -43,6 +43,7 @@ struct CommandLineOptions
 {
   std::optional<std::filesystem::path> ScenePath = std::nullopt;
   int SamplesPerPixel = 128;
+  bool MotionBlur = false;
 };
 
 CommandLineOptions ParseCommandLine(int argc, char** argv)
@@ -75,6 +76,12 @@ CommandLineOptions ParseCommandLine(int argc, char** argv)
       continue;
     }
 
+    if (arg == "--motion-blur")
+    {
+      options.MotionBlur = true;
+      continue;
+    }
+
     throw std::invalid_argument("Unknown argument: " + std::string{arg});
   }
   return options;
@@ -90,33 +97,29 @@ int main(int argc, char** argv)
   constexpr int w = 1280;
   constexpr int h = 720;
 
-  // /*
-  // Path Tracing Cornell Box Camera
-  // constexpr Point Eye = {278, 273, -800};
-  // constexpr Point At = {278, 273, 200};
-  // constexpr Vector Up = {0, 1, 0};
-  // constexpr float fovH = 40.f;
-  // constexpr float fovHrad = fovH * 3.14f / 180.f;
-  // Camera camera{Eye, At, Up, w, h, fovHrad};
-  // PathTracingShader veach_shader{{0.0f, 0.0f, 0.0f}};
-  // Scene scene = CreateCornellBox();
-  // */
-
-  // Veach Camera
-  // Camera for the Veach demo scene: centered composition with the plate stack
-  // directly under the square lights and a less dominant floor presence.
-  constexpr Point Eye = {0, 2, -7};
-  constexpr Point At = {0, 1, 2};
-  constexpr Vector Up = {0, 1, 0};
-  constexpr float fovH = 45.f;
-
-  constexpr float fovHrad = fovH * 3.14f / 180.f;
-  Camera camera{Eye, At, Up, w, h, fovHrad};
   Renderer renderer;
   Image image{w, h};
 
-  if (options.ScenePath.has_value())
+  if (options.MotionBlur)
   {
+    // Dedicated motion-blur scene: bouncing coloured spheres with an ambient
+    // light, rendered with the path tracer for correct global illumination.
+    PathTracingShader shader{{0.5f, 0.7f, 1.0f}, DirectIlluminationMode::Importance};
+    Scene scene = CreateMotionBlurScene();
+    scene.Build();
+    const Camera& cam = *scene.GetCamera();
+    image = renderer.Render(scene, cam, shader, options.SamplesPerPixel, true);
+  }
+  else if (options.ScenePath.has_value())
+  {
+    // Veach Camera
+    constexpr Point Eye = {0, 2, -7};
+    constexpr Point At = {0, 1, 2};
+    constexpr Vector Up = {0, 1, 0};
+    constexpr float fovH = 45.f;
+    constexpr float fovHrad = fovH * 3.14f / 180.f;
+    Camera camera{Eye, At, Up, w, h, fovHrad};
+
     PathTracingShader path_tracing_shader{{0.0f, 0.0f, 0.0f}, DirectIlluminationMode::Importance};
     Scene scene = CreateGltfScene(*options.ScenePath, w, h);
     scene.Build();
@@ -125,6 +128,14 @@ int main(int argc, char** argv)
   }
   else
   {
+    // Default: Veach MIS scene
+    constexpr Point Eye = {0, 2, -7};
+    constexpr Point At = {0, 1, 2};
+    constexpr Vector Up = {0, 1, 0};
+    constexpr float fovH = 45.f;
+    constexpr float fovHrad = fovH * 3.14f / 180.f;
+    Camera camera{Eye, At, Up, w, h, fovHrad};
+
     VeachShader veach_shader{{0.0f, 0.0f, 0.0f}};
     Scene scene = CreateVeachScene();
     scene.Build();
@@ -134,9 +145,7 @@ int main(int argc, char** argv)
   ImagePPM::Save(image, "image.ppm");
 
   auto end = std::chrono::system_clock::now();
-
   auto duration = std::chrono::duration<double>(end - begin);
-
   std::cout << "Time to render: " << duration.count() << " sec" << '\n';
 
 #if defined(__DENOISE__)
@@ -148,9 +157,7 @@ int main(int argc, char** argv)
   ImagePPM::Save(denoised_image, "image-OIDN.ppm");
 
   end = std::chrono::system_clock::now();
-
   duration = std::chrono::duration<double>(end - begin);
-
   std::cout << "Time to denoise: " << duration.count() << " sec" << '\n';
 #endif
 

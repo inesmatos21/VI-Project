@@ -145,7 +145,9 @@ RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, 
 
   // follow up ray
   const Vector wi_world = glm::normalize(basis.LocalToWorld(wi_local));
-  const Ray scattered_ray = Ray::WithOffset(intersection.Position, wi_world, shading_normal);
+  // Propagate the original ray's time so that secondary rays see moving objects
+  // at the same shutter instant as the primary ray (section 2.5 of the guide).
+  const Ray scattered_ray = Ray::WithOffset(intersection.Position, wi_world, shading_normal, ray.Time);
 
   Intersection scattered_intersection{};
   RGB incoming_radiance = m_BackgroundColor;
