@@ -13,6 +13,7 @@ struct Intersection
   float Distance{-1};
   int ObjectIndex{-1};
   int PrimitiveIndex{-1};
+  bool FrontFace{true};
 };
 
 } // namespace VI

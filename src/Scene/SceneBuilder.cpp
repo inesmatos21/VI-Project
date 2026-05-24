@@ -927,14 +927,13 @@ Scene CreateMotionBlurScene()
  
   // ── 3 esferas grandes estacionárias (idênticas ao PDF) ───────────────────
  
-  // material1: dielectric(1.5) — vidro com refração
-  // Aproximamos com roughness muito baixa e metallic=0 (sem absorção)
-  // Albedo branco puro para não colorir a refração
+  // material1: dielectric(1.5) — vidro real com refração (Lei de Snell + Schlick)
   const int mat1 = scene.AddMaterial({
-      .Name = "Glass (dielectric approx)",
-      .Albedo = {1.0f, 1.0f, 1.0f},
-      .Roughness = 0.02f,
+      .Name = "Glass dielectric 1.5",
+      .Albedo = {1.0f, 1.0f, 1.0f},   // sem absorção — attenuation=1 como no PDF
+      .Roughness = 1.0f,
       .Metallic = 0.0f,
+      .RefractionIndex = 1.5f,         // índice de refração do vidro
   });
  
   // material2: lambertian(0.4, 0.2, 0.1) — difusa castanha

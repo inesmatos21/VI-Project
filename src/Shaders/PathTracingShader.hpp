@@ -25,6 +25,8 @@ private:
 
   RGB IndirectIllumination(const Ray& ray, const Scene& scene, const Intersection& intersection, const Material& material, int depth, bool allow_emissive [[maybe_unused]]) const;
 
+  RGB DielectricScatter(const Ray& ray, const Scene& scene, const Intersection& Intersection, const Material& material, int depth) const;
+
   RGB m_BackgroundColor;
   DirectIlluminationMode m_DirectIlluminationMode;
 };

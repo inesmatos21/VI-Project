@@ -128,6 +128,8 @@ struct MaterialDesc
   float Metallic = 0.f;
   RGB EmissionColor{};
   float EmissionPower = 0.f;
+  // Set to > 0 to make this a dielectric (glass/water). Use 1.5 for glass.
+  float RefractionIndex = 0.f;
   std::optional<TextureSampler> AlbedoTexture = std::nullopt;
   std::optional<TextureSampler> MetallicRoughnessTexture = std::nullopt;
   std::optional<TextureSampler> EmissionTexture = std::nullopt;
@@ -136,7 +138,7 @@ struct MaterialDesc
 class Material
 {
 public:
-  Material(MaterialDesc desc) : m_Name{desc.Name}, m_Albedo{desc.Albedo}, m_EmissionColor{desc.EmissionColor}, m_Metallic{desc.Metallic}, m_Roughness{desc.Roughness}, m_EmissionPower{desc.EmissionPower}, m_AlbedoTexture{std::move(desc.AlbedoTexture)}, m_MetallicRoughnessTexture{std::move(desc.MetallicRoughnessTexture)}, m_EmissionTexture{std::move(desc.EmissionTexture)} {}
+  Material(MaterialDesc desc) : m_Name{desc.Name}, m_Albedo{desc.Albedo}, m_EmissionColor{desc.EmissionColor}, m_Metallic{desc.Metallic}, m_Roughness{desc.Roughness}, m_EmissionPower{desc.EmissionPower}, m_RefractionIndex{desc.RefractionIndex}, m_AlbedoTexture{std::move(desc.AlbedoTexture)}, m_MetallicRoughnessTexture{std::move(desc.MetallicRoughnessTexture)}, m_EmissionTexture{std::move(desc.EmissionTexture)} {}
 
   const std::string& GetName() const
   {
@@ -255,12 +257,24 @@ public:
     return m_EmissionTexture.has_value();
   }
 
+  // Returns true if this material is a dielectric (glass/water/diamond).
+  bool IsDielectric() const
+  {
+    return m_RefractionIndex > 0.f;
+  }
+
+  float GetRefractionIndex() const
+  {
+    return m_RefractionIndex;
+  }
+
 private:
   std::string m_Name;
   RGB m_Albedo, m_EmissionColor;
   float m_Metallic;
   float m_Roughness;
   float m_EmissionPower{0.f};
+  float m_RefractionIndex{0.f};
 
   std::optional<TextureSampler> m_AlbedoTexture{std::nullopt};
   std::optional<TextureSampler> m_MetallicRoughnessTexture{std::nullopt};

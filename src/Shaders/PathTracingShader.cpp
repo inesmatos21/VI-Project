@@ -9,6 +9,7 @@
 #include "Primitive/Primitive.hpp"
 #include "Ray/Intersection.hpp"
 #include "Ray/Ray.hpp"
+#include "Primitive/Geometry/Geometry.hpp"
 #include "Scene/Scene.hpp"
 #include "Shaders/DirectIllumination.hpp"
 
@@ -78,6 +79,13 @@ RGB PathTracingShader::DoExecute(const Ray& ray, const Scene& scene, const Inter
     {
       return allow_emissive ? radiance : RGB{0.0f};
     }
+  }
+
+  // Dielectric materials (glass/water) are handled separately:
+  // they refract/reflect the ray using Snell's law instead of the BRDF.
+  if (material.IsDielectric())
+  {
+    return DielectricScatter(ray, scene, intersection, material, depth);
   }
 
   color += IndirectIllumination(ray, scene, intersection, material, depth, allow_emissive);
@@ -162,5 +170,100 @@ RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, 
 
   return ClampRadiance(throughput * incoming_radiance / continuation_probability);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dielectric scatter — follows the PDF (sections 11.2–11.4):
+//   1. Compute eta ratio depending on whether we enter or exit the material
+//   2. Check for Total Internal Reflection (Snell's law)
+//   3. Use Schlick approximation to randomly choose reflect vs refract
+//   4. Propagate ray.Time so moving dielectric objects respect motion blur
+//
+// Key implementation note: when a refracted ray travels inside a dielectric
+// sphere, the GridAccelerationStructure may miss the exit surface because the
+// ray origin is inside the grid cell. We therefore first test the dielectric
+// primitive directly (guaranteed hit for the exit surface), and only fall back
+// to the full scene Trace for the outgoing ray after it exits the glass.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Helper: refract a unit vector uv around normal n with eta ratio ri.
+static Vector Refract(const Vector& uv, const Vector& n, float ri)
+{
+  const float cos_theta = std::fmin(glm::dot(-uv, n), 1.0f);
+  const Vector r_perp = ri * (uv + cos_theta * n);
+  const Vector r_para = -std::sqrt(std::fabs(1.0f - glm::dot(r_perp, r_perp))) * n;
+  return r_perp + r_para;
+}
+
+// Helper: Schlick reflectance approximation.
+static float Schlick(float cosine, float ri)
+{
+  float r0 = (1.0f - ri) / (1.0f + ri);
+  r0 = r0 * r0;
+  return r0 + (1.0f - r0) * std::pow(1.0f - cosine, 5.0f);
+}
+
+RGB PathTracingShader::DielectricScatter(const Ray& ray, const Scene& scene,
+    const Intersection& intersection, const Material& material, int depth) const
+{
+  // Dielectrics use their own depth budget so that total internal reflection
+  // bounces don't consume the global MAX_DEPTH and go black.
+  constexpr int MAX_DIELECTRIC_DEPTH = 20;
+  if (depth > MAX_DIELECTRIC_DEPTH)
+    return RGB{0.f};
+
+  const float n = material.GetRefractionIndex();
+  // ri = eta_i / eta_t
+  const float ri = intersection.FrontFace ? (1.0f / n) : n;
+
+  const Vector unit_dir = glm::normalize(ray.Direction);
+  const float cos_theta = std::fmin(glm::dot(-unit_dir, intersection.Normal), 1.0f);
+  const float sin_theta = std::sqrt(1.0f - cos_theta * cos_theta);
+
+  const bool cannot_refract = ri * sin_theta > 1.0f;
+  const bool do_reflect = cannot_refract || Schlick(cos_theta, n) > Random::RandomFloat();
+
+  Vector direction;
+  Vector offset_n;
+  if (do_reflect)
+  {
+    direction = glm::reflect(unit_dir, intersection.Normal);
+    offset_n  = intersection.Normal;
+  }
+  else
+  {
+    direction = Refract(unit_dir, intersection.Normal, ri);
+    offset_n  = -intersection.Normal;
+  }
+
+  const Vector norm_dir = glm::normalize(direction);
+  const Ray scattered{
+      .Origin    = intersection.Position + 1e-4f * offset_n,
+      .Direction = norm_dir,
+      .Time      = ray.Time,
+  };
+
+  Intersection next{};
+  
+  RGB incoming = m_BackgroundColor;
+
+  if (scene.Trace(scattered, next))
+  {
+      const Primitive& prim = scene.GetPrimitive(next.ObjectIndex);
+      const Material& next_mat = scene.GetMaterial(prim.MaterialIndex);
+
+      if (next_mat.IsDielectric())
+          incoming = DielectricScatter(scattered, scene, next, next_mat, depth + 1);
+      else
+          incoming = DoExecute(scattered, scene, next, depth + 1, true);
+  }
+
+  // Fresnel weighting
+  const float reflect_prob = Schlick(cos_theta, n);
+
+  if (do_reflect)
+      return reflect_prob * incoming;
+  else
+      return (1.0f - reflect_prob) * incoming;
+  }
 
 } // namespace VI
