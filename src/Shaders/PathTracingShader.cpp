@@ -205,12 +205,6 @@ static float Schlick(float cosine, float ri)
 RGB PathTracingShader::DielectricScatter(const Ray& ray, const Scene& scene,
     const Intersection& intersection, const Material& material, int depth) const
 {
-  // Dielectrics use their own depth budget so that total internal reflection
-  // bounces don't consume the global MAX_DEPTH and go black.
-  constexpr int MAX_DIELECTRIC_DEPTH = 20;
-  if (depth > MAX_DIELECTRIC_DEPTH)
-    return RGB{0.f};
-
   const float n = material.GetRefractionIndex();
   // ri = eta_i / eta_t
   const float ri = intersection.FrontFace ? (1.0f / n) : n;
