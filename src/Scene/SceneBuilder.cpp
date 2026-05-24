@@ -835,26 +835,27 @@ Scene CreateMotionBlurScene()
   auto rand_float = []() -> float { return Random::RandomFloat(); };
   auto rand_range = [&](float lo, float hi) -> float { return lo + (hi - lo) * rand_float(); };
  
-  // ── Chão: cor acastanhada/cinzenta escura — claramente diferente do céu ──
+  // ── Materiais base ────────────────────────────────────────────────────────
+ 
+  // Chão: cinzento difuso (igual ao PDF — checker não disponível, usamos cinzento)
   const int ground_mat = scene.AddMaterial({
       .Name = "Ground",
       .Albedo = {0.5f, 0.5f, 0.5f},
       .Roughness = 1.0f,
   });
  
-  // ── Luz ambiente: azul-claro que imita o céu do PDF ───────────────────────
-  // O background do shader já é azul; a AmbientLight ilumina as superfícies
-  // com essa mesma cor para manter consistência.
+  // Luz ambiente muito suave — o fundo azul do shader faz o trabalho principal
   const int light_mat = scene.AddMaterial({
       .Name = "Sky Light",
       .EmissionColor = {0.7f, 0.8f, 1.0f},
-      .EmissionPower = 0.2f,  // fraco — o background azul já ilumina, não precisamos de mais
+      .EmissionPower = 0.15f,
   });
   scene.AddLight(std::make_unique<AmbientLight>(light_mat));
  
-  // ── Grid de esferas pequenas em movimento ────────────────────────────────
-  // 80% difusas com cores pastel claras, 15% metálicas, 5% brancas lisas.
-  // Todas movem-se para cima entre t=0 e t=1, gerando motion blur vertical.
+  // ── Grid de esferas pequenas (fiel ao PDF) ────────────────────────────────
+  // 80% difusas COM movimento (center -> center2), fiel ao PDF
+  // 15% metálicas SEM movimento (estacionárias, como no PDF)
+  //  5% "vidro" — brancas lisas sem movimento
   for (int a = -11; a < 11; ++a)
   {
     for (int b = -11; b < 11; ++b)
@@ -866,98 +867,105 @@ Scene CreateMotionBlurScene()
           static_cast<float>(b) + 0.9f * rand_float(),
       };
  
-      // Afastar das 3 esferas grandes
-      if (glm::length(center - Point{0.f, 0.2f,  0.f}) <= 1.2f) continue;
-      if (glm::length(center - Point{-4.f, 0.2f, 0.f}) <= 1.2f) continue;
-      if (glm::length(center - Point{4.f, 0.2f,  0.f}) <= 1.2f) continue;
- 
-      // Movimento uniforme para cima: [0.1, 0.4] — sempre visível, nunca excessivo
-      const Point center2 = center + Point{0.f, rand_range(0.1f, 0.4f), 0.f};
+      // Afastar das 3 esferas grandes (raio de exclusão = 0.9, igual ao PDF)
+      if (glm::length(center - Point{4.f, 0.2f, 0.f}) <= 0.9f) continue;
  
       int mat_idx;
+ 
       if (choose_mat < 0.8f)
       {
-        // Difusa pastel: cada canal gerado em [0.4, 1.0] para cores claras
+        // Difusa com movimento — albedo = random*random como no PDF
+        // random*random tende a produzir cores mais escuras/saturadas;
+        // usamos sqrt para termos cores mais visíveis mas mantendo o estilo
         const RGB albedo{
-            rand_range(0.4f, 1.0f),
-            rand_range(0.4f, 1.0f),
-            rand_range(0.4f, 1.0f),
+            rand_float() * rand_float(),
+            rand_float() * rand_float(),
+            rand_float() * rand_float(),
         };
         mat_idx = scene.AddMaterial({
             .Name = "Small Diffuse",
             .Albedo = albedo,
             .Roughness = 1.0f,
         });
+        // Movimento para cima [0, 0.5] como no PDF
+        const Point center2 = center + Point{0.f, rand_range(0.f, 0.5f), 0.f};
+        scene.AddPrimitive(Sphere{center, center2, 0.2f}, mat_idx);
       }
       else if (choose_mat < 0.95f)
       {
-        // Metálica: albedo claro, baixa rugosidade
+        // Metal estacionário — albedo [0.5,1], fuzz [0,0.5] como no PDF
         const RGB albedo{
-            rand_range(0.6f, 1.0f),
-            rand_range(0.6f, 1.0f),
-            rand_range(0.6f, 1.0f),
+            rand_range(0.5f, 1.0f),
+            rand_range(0.5f, 1.0f),
+            rand_range(0.5f, 1.0f),
         };
+        const float fuzz = rand_range(0.0f, 0.5f);
         mat_idx = scene.AddMaterial({
             .Name = "Small Metal",
             .Albedo = albedo,
-            .Roughness = rand_range(0.02f, 0.2f),
+            .Roughness = fuzz,
             .Metallic = 1.0f,
         });
+        scene.AddPrimitive(Sphere{center, 0.2f}, mat_idx);  // estacionária
       }
       else
       {
-        // Branca lisa
+        // "Vidro" — aproximado com material branco liso estacionário
         mat_idx = scene.AddMaterial({
-            .Name = "Small White",
-            .Albedo = {0.9f, 0.9f, 0.9f},
-            .Roughness = 0.8f,
+            .Name = "Small Glass",
+            .Albedo = {0.9f, 0.9f, 0.95f},
+            .Roughness = 0.02f,
+            .Metallic = 0.0f,
         });
+        scene.AddPrimitive(Sphere{center, 0.2f}, mat_idx);  // estacionária
       }
- 
-      scene.AddPrimitive(Sphere{center, center2, 0.2f}, mat_idx);
     }
   }
  
   // ── Chão ─────────────────────────────────────────────────────────────────
   scene.AddPrimitive(Sphere{Point{0.f, -1000.f, 0.f}, 1000.f}, ground_mat);
  
-  // ── 3 esferas grandes estacionárias (como no PDF) ─────────────────────────
-  // Esquerda: difusa castanha-avermelhada
-  const int diffuse_mat = scene.AddMaterial({
-      .Name = "Centre Diffuse",
+  // ── 3 esferas grandes estacionárias (idênticas ao PDF) ───────────────────
+ 
+  // material1: dielectric(1.5) — vidro com refração
+  // Aproximamos com roughness muito baixa e metallic=0 (sem absorção)
+  // Albedo branco puro para não colorir a refração
+  const int mat1 = scene.AddMaterial({
+      .Name = "Glass (dielectric approx)",
+      .Albedo = {1.0f, 1.0f, 1.0f},
+      .Roughness = 0.02f,
+      .Metallic = 0.0f,
+  });
+ 
+  // material2: lambertian(0.4, 0.2, 0.1) — difusa castanha
+  const int mat2 = scene.AddMaterial({
+      .Name = "Diffuse Brown",
       .Albedo = {0.4f, 0.2f, 0.1f},
       .Roughness = 1.0f,
+      .Metallic = 0.0f,
   });
-  // Centro: espelhada prata — Roughness 0.02 (MIN_ROUGHNESS do BRDF)
-  // para garantir reflexão nítida sem artefactos do GGX sampler
-  const int mirror_mat = scene.AddMaterial({
-      .Name = "Centre Mirror",
-      .Albedo = {1.f, 1.f, 1.f},
-      .Roughness = 0.f,
-      .Metallic = 1.f,
-  });
-  
-  // Direita: metálica acinzentada com ligeira rugosidade
-  const int metal_mat = scene.AddMaterial({
-      .Name = "Centre Metal",
+ 
+  // material3: metal(0.7, 0.6, 0.5), fuzz=0 — metal polido
+  const int mat3 = scene.AddMaterial({
+      .Name = "Metal Polished",
       .Albedo = {0.7f, 0.6f, 0.5f},
-      .Roughness = 0.05f,
+      .Roughness = 0.02f,
       .Metallic = 1.0f,
   });
  
-  scene.AddPrimitive(Sphere{Point{-4.f, 1.f, 0.f}, 1.0f}, diffuse_mat);
-  scene.AddPrimitive(Sphere{Point{ 0.f, 1.f, 0.f}, 1.0f}, mirror_mat);
-  scene.AddPrimitive(Sphere{Point{ 4.f, 1.f, 0.f}, 1.0f}, metal_mat);
+  scene.AddPrimitive(Sphere{Point{ 0.f, 1.f, 0.f}, 1.0f}, mat1);  // vidro (centro)
+  scene.AddPrimitive(Sphere{Point{-4.f, 1.f, 0.f}, 1.0f}, mat2);  // difusa (esquerda)
+  scene.AddPrimitive(Sphere{Point{ 4.f, 1.f, 0.f}, 1.0f}, mat3);  // metal (direita)
  
-  // ── Câmara idêntica à do PDF (secção 2.6) ────────────────────────────────
+  // ── Câmara idêntica ao PDF ────────────────────────────────────────────────
   scene.SetCamera(Camera{
       Point{13.f, 2.f, 3.f},
       Point{0.f,  0.f, 0.f},
       Vector{0.f, 1.f, 0.f},
       1280, 720,
       glm::radians(20.f),
-      0.f,   // sem defocus — evita artefactos geométricos que mascaram o motion blur
-      10.f
+      glm::radians(0.6f),  // defocus_angle = 0.6 como no PDF
+      10.f                 // focus_dist = 10 como no PDF
   });
  
   return scene;
