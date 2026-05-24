@@ -41,8 +41,8 @@ float PowerHeuristic(float pdf_a, float pdf_b)
 
 namespace VI
 {
-constexpr float MAX_DEPTH = 5;
-constexpr int RUSSIAN_ROULETTE_DEPTH = 2;
+constexpr int MAX_DEPTH = 50;           // igual ao PDF (max_depth=50)
+constexpr int RUSSIAN_ROULETTE_DEPTH = 5; // adiar RR para não matar reflexões cedo
 constexpr float MAX_SAMPLE_RADIANCE = 10.0f;
 
 RGB ClampRadiance(const RGB& radiance)
@@ -118,8 +118,12 @@ RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, 
   const float microfacet_probability = material.GetSpecularProbability(intersection.TexCoord);
   const float diffuse_probability = 1.0f - microfacet_probability;
 
-  // stochastically select whether to sample the direction according to specular (microfacet) or diffuse (lambertian)
-  const bool sample_microfacet = Random::RandomFloat(0.f, 1.f) < microfacet_probability;
+  // For pure metals (metallic≈1), always sample GGX — diffuse contribution
+  // is negligible and wastes samples that darken the reflection.
+  // For other materials, stochastically choose based on specular probability.
+  const float metallic = material.GetMetallic(intersection.TexCoord);
+  const bool sample_microfacet = (metallic > 0.9f) ? true :
+      Random::RandomFloat(0.f, 1.f) < microfacet_probability;
     
   // sample the direction according to the selected BRDF mode
   const Vector wi_local = microfacetBRDF.Sample(

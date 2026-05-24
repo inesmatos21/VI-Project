@@ -844,13 +844,10 @@ Scene CreateMotionBlurScene()
       .Roughness = 1.0f,
   });
  
-  // Luz ambiente muito suave — o fundo azul do shader faz o trabalho principal
-  const int light_mat = scene.AddMaterial({
-      .Name = "Sky Light",
-      .EmissionColor = {0.7f, 0.8f, 1.0f},
-      .EmissionPower = 0.15f,
-  });
-  scene.AddLight(std::make_unique<AmbientLight>(light_mat));
+  // Sem AmbientLight — o m_BackgroundColor {0.5, 0.7, 1.0} do PathTracingShader
+  // já serve como céu: quando um raio não atinge nada devolve essa cor.
+  // Assim as reflexões metálicas e o dielectric recebem a cor do céu
+  // automaticamente através dos bounces, igual ao PDF.
  
   // ── Grid de esferas pequenas (fiel ao PDF) ────────────────────────────────
   // 80% difusas COM movimento (center -> center2), fiel ao PDF
