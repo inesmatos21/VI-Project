@@ -892,7 +892,7 @@ Scene CreateMotionBlurScene()
             .Roughness = 1.0f,
         });
         // Movimento para cima [0, 0.5] como no PDF
-        const Point center2 = center + Point{0.f, rand_range(0.f, 0.5f), 0.f};
+        const Point center2 = center + Point{0.f, rand_range(0.0f, 0.5f), 0.f};
         scene.AddPrimitive(Sphere{center, center2, 0.2f}, mat_idx);
       }
       else if (choose_mat < 0.95f)
@@ -934,10 +934,10 @@ Scene CreateMotionBlurScene()
   // material1: dielectric(1.5) — vidro real com refração (Lei de Snell + Schlick)
   const int mat1 = scene.AddMaterial({
       .Name = "Glass dielectric 1.5",
-      .Albedo = {1.0f, 1.0f, 1.0f},   // sem absorção — attenuation=1 como no PDF
+      .Albedo = {1.0f, 1.0f, 1.0f},
       .Roughness = 0.f,
       .Metallic = 0.0f,
-      .RefractionIndex = 1.5f,         // índice de refração do vidro
+      .RefractionIndex = 1.5f,
   });
 
   // material2: lambertian(0.4, 0.2, 0.1) — difusa castanha
