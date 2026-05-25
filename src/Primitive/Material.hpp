@@ -260,7 +260,7 @@ public:
   // Returns true if this material is a dielectric (glass/water/diamond).
   bool IsDielectric() const
   {
-    return m_RefractionIndex > 0.f;
+    return m_RefractionIndex > 0.f && m_Metallic == 0.f;
   }
 
   float GetRefractionIndex() const

@@ -836,10 +836,6 @@ Scene CreateVeachScene()
 Scene CreateMotionBlurScene()
 {
   Scene scene;
-
-  auto rand_float = []() -> float { return Random::RandomFloat(); };
-  auto rand_range = [&](float lo, float hi) -> float { return lo + (hi - lo) * rand_float(); };
-
   // ── Materiais base ────────────────────────────────────────────────────────
 
   // Chão: cinzento difuso (igual ao PDF — checker não disponível, usamos cinzento)
@@ -858,11 +854,11 @@ Scene CreateMotionBlurScene()
   {
     for (int b = -11; b < 11; ++b)
     {
-      const float choose_mat = rand_float();
+      const float choose_mat = Random::RandomFloat();
       const Point center{
-          static_cast<float>(a) + 0.9f * rand_float(),
+          static_cast<float>(a) + 0.9f * Random::RandomFloat(),
           0.2f,
-          static_cast<float>(b) + 0.9f * rand_float(),
+          static_cast<float>(b) + 0.9f * Random::RandomFloat(),
       };
 
       // Exclui esferas que colidiriam com as 3 grandes — teste em 2D (XZ)
@@ -878,32 +874,32 @@ Scene CreateMotionBlurScene()
 
       if (choose_mat < 0.8f)
       {
-        // Difusa com movimento — albedo = random*random como no PDF
-        // random*random tende a produzir cores mais escuras/saturadas;
-        // usamos sqrt para termos cores mais visíveis mas mantendo o estilo
+
         const RGB albedo{
-            rand_float() * rand_float(),
-            rand_float() * rand_float(),
-            rand_float() * rand_float(),
+            Random::RandomFloat() * Random::RandomFloat(),
+            Random::RandomFloat() * Random::RandomFloat(),
+            Random::RandomFloat() * Random::RandomFloat(),
         };
+
         mat_idx = scene.AddMaterial({
             .Name = "Small Diffuse",
             .Albedo = albedo,
             .Roughness = 1.0f,
         });
-        // Movimento para cima [0, 0.5] como no PDF
-        const Point center2 = center + Point{0.f, rand_range(0.0f, 0.5f), 0.f};
+        
+        const Point center2 = center + Point{0.f, Random::RandomFloat(0.0f, 0.5f), 0.f};
         scene.AddPrimitive(Sphere{center, center2, 0.2f}, mat_idx);
       }
       else if (choose_mat < 0.95f)
       {
         // Metal estacionário — albedo [0.5,1], fuzz [0,0.5] como no PDF
         const RGB albedo{
-            rand_range(0.5f, 1.0f),
-            rand_range(0.5f, 1.0f),
-            rand_range(0.5f, 1.0f),
+            Random::RandomFloat(0.5f, 1.0f),
+            Random::RandomFloat(0.5f, 1.0f),
+            Random::RandomFloat(0.5f, 1.0f),
         };
-        const float fuzz = rand_range(0.0f, 0.5f);
+        const float fuzz = Random::RandomFloat(0.0f, 0.5f);
+
         mat_idx = scene.AddMaterial({
             .Name = "Small Metal",
             .Albedo = albedo,
@@ -917,9 +913,10 @@ Scene CreateMotionBlurScene()
         // "Vidro" — aproximado com material branco liso estacionário
         mat_idx = scene.AddMaterial({
             .Name = "Small Glass",
-            .Albedo = {0.9f, 0.9f, 0.95f},
-            .Roughness = 0.02f,
+            .Albedo = {0.8f, 0.8f, 0.9f},
+            .Roughness = 0.f,
             .Metallic = 0.0f,
+            .RefractionIndex = 1.5f,
         });
         scene.AddPrimitive(Sphere{center, 0.2f}, mat_idx);  // estacionária
       }
@@ -968,9 +965,9 @@ Scene CreateMotionBlurScene()
       Point{13.f, 2.f, 3.f},
       Point{0.f,  0.f, 0.f},
       Vector{0.f, 1.f, 0.f},
-      400, 225,
+      1280, 720,
       glm::radians(20.f),
-      glm::radians(0.6f),
+      glm::radians(0.f),
       10.f
   });
 
