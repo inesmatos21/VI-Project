@@ -849,10 +849,6 @@ Scene CreateMotionBlurScene()
       .Roughness = 1.0f,
   });
 
-  // Sem AmbientLight — o m_BackgroundColor {0.5, 0.7, 1.0} do PathTracingShader
-  // já serve como céu: quando um raio não atinge nada devolve essa cor.
-  // Assim as reflexões metálicas e o dielectric recebem a cor do céu
-  // automaticamente através dos bounces, igual ao PDF.
 
   // ── Grid de esferas pequenas (fiel ao PDF) ────────────────────────────────
   // 80% difusas COM movimento (center -> center2), fiel ao PDF
@@ -939,7 +935,7 @@ Scene CreateMotionBlurScene()
   const int mat1 = scene.AddMaterial({
       .Name = "Glass dielectric 1.5",
       .Albedo = {1.0f, 1.0f, 1.0f},   // sem absorção — attenuation=1 como no PDF
-      .Roughness = 1.0f,
+      .Roughness = 0.f,
       .Metallic = 0.0f,
       .RefractionIndex = 1.5f,         // índice de refração do vidro
   });
@@ -972,8 +968,8 @@ Scene CreateMotionBlurScene()
       Point{13.f, 2.f, 3.f},
       Point{0.f,  0.f, 0.f},
       Vector{0.f, 1.f, 0.f},
-      1280, 720,
-      glm::radians(25.f),  // ligeiramente maior que PDF para ver esferas à frente
+      400, 225,
+      glm::radians(20.f),
       glm::radians(0.6f),
       10.f
   });
