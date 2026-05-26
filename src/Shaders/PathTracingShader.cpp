@@ -43,7 +43,7 @@ namespace VI
 {
 constexpr int MAX_DEPTH = 100;
 constexpr int RUSSIAN_ROULETTE_DEPTH = 5;
-constexpr float MAX_SAMPLE_RADIANCE = 10.0f;
+constexpr float MAX_SAMPLE_RADIANCE = 1.0f;
 
 RGB GetBackgroundColor(const Vector& direction)
 {
@@ -71,7 +71,7 @@ RGB PathTracingShader::Execute(const Ray& ray, const Scene& scene) const
   Intersection intersection{};
   if (!scene.Trace(ray, intersection))
   {
-    return GetBackgroundColor(ray.Direction);  // Use gradient insted of color
+    return GetBackgroundColor(ray.Direction); 
   }
 
   return DoExecute(ray, scene, intersection);
@@ -213,6 +213,19 @@ static float Schlick(float cosine, float ri)
 RGB PathTracingShader::DielectricScatter(const Ray& ray, const Scene& scene,
     const Intersection& intersection, const Material& material, int depth) const
 {
+  if (depth > MAX_DEPTH) {
+    return RGB{0.0f};
+  }
+
+/*
+  if (depth >= RUSSIAN_ROULETTE_DEPTH) {
+    constexpr float continuation_probability = 0.95f;
+
+    if (Random::RandomFloat() > continuation_probability) {
+      return RGB{0.0f};
+    }
+  }
+*/
 
   const float n = material.GetRefractionIndex();
   // ri = eta_i / eta_t
@@ -226,6 +239,7 @@ RGB PathTracingShader::DielectricScatter(const Ray& ray, const Scene& scene,
   const bool cannot_refract = ri * sin_theta > 1.0f;
   
   const float reflect_prob = Schlick(cos_theta, ri);
+
   const bool do_reflect = cannot_refract || reflect_prob > Random::RandomFloat();
 
   Vector direction;
@@ -233,41 +247,42 @@ RGB PathTracingShader::DielectricScatter(const Ray& ray, const Scene& scene,
   if (do_reflect)
   {
     direction = glm::reflect(unit_dir, intersection.Normal);
-    offset_n  = intersection.Normal;
+    // offset_n = intersection.Normal;
   }
   else
   {
     direction = Refract(unit_dir, intersection.Normal, ri);
-    offset_n  = -intersection.Normal;
+    // offset_n = -intersection.Normal;
   }
 
   const Vector norm_dir = glm::normalize(direction);
   const Ray scattered{
-    .Origin    = intersection.Position + 1e-3f * offset_n,
+    .Origin = intersection.Position + 1e-4f * direction,
     .Direction = norm_dir,
-    .Time      = ray.Time,
+    .Time = ray.Time,
   };
 
   Intersection next{};
   
   RGB incoming = GetBackgroundColor(scattered.Direction);
 
-    if (scene.Trace(scattered, next))
-  {
-      const Primitive& prim = scene.GetPrimitive(next.ObjectIndex);
-      const Material& next_mat = scene.GetMaterial(prim.MaterialIndex);
+  if (scene.Trace(scattered, next)) {
+    const Primitive& prim = scene.GetPrimitive(next.ObjectIndex);
+    const Material& next_mat = scene.GetMaterial(prim.MaterialIndex);
 
-      if (next_mat.IsDielectric())
-          incoming = DielectricScatter(scattered, scene, next, next_mat, depth + 1);
-      else
-          incoming = DoExecute(scattered, scene, next, depth + 1, true);
-      
+    if (next_mat.IsDielectric())
+      incoming = DielectricScatter(scattered,scene,next,next_mat,depth + 1);
+    else
+      incoming = DoExecute(scattered,scene,next,depth + 1,true);
   }
 
+  // constexpr float continuation_probability = 0.95f;
+
   if (do_reflect)
-    return reflect_prob * incoming;
+    return reflect_prob * ClampRadiance(incoming * RGB{0.92f, 0.97f, 1.0f});
   else
-    return (1.0f - reflect_prob) * incoming;
+    return (1.0f - reflect_prob) * ClampRadiance(incoming * RGB{0.92f, 0.97f, 1.0f});
+
 }
 
 } // namespace VI
