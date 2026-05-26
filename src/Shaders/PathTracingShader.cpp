@@ -41,9 +41,25 @@ float PowerHeuristic(float pdf_a, float pdf_b)
 
 namespace VI
 {
-constexpr int MAX_DEPTH = 50;           // igual ao PDF (max_depth=50)
-constexpr int RUSSIAN_ROULETTE_DEPTH = 5; // adiar RR para não matar reflexões cedo
+constexpr int MAX_DEPTH = 100;
+constexpr int RUSSIAN_ROULETTE_DEPTH = 5;
 constexpr float MAX_SAMPLE_RADIANCE = 10.0f;
+
+RGB GetBackgroundColor(const Vector& direction)
+{
+    float t = 0.5f * (direction.x + 1.0f);
+    
+    RGB horizon{0.9f, 0.7f, 0.6f};
+  
+    RGB sky{0.5f, 0.7f, 1.0f};
+    
+    float height = 0.5f * (direction.y + 1.0f);
+    RGB color = sky * height + horizon * (1.0f - height);
+    
+    color = color * (0.8f + 0.4f * t);
+    
+    return color;
+}
 
 RGB ClampRadiance(const RGB& radiance)
 {
@@ -55,7 +71,7 @@ RGB PathTracingShader::Execute(const Ray& ray, const Scene& scene) const
   Intersection intersection{};
   if (!scene.Trace(ray, intersection))
   {
-    return m_BackgroundColor;
+    return GetBackgroundColor(ray.Direction);  // Use gradient insted of color
   }
 
   return DoExecute(ray, scene, intersection);
@@ -162,7 +178,7 @@ RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, 
   const Ray scattered_ray = Ray::WithOffset(intersection.Position, wi_world, shading_normal, ray.Time);
 
   Intersection scattered_intersection{};
-  RGB incoming_radiance = m_BackgroundColor;
+  RGB incoming_radiance = GetBackgroundColor(scattered_ray.Direction);
   if (scene.Trace(scattered_ray, scattered_intersection))
   {
     // Direct light sampling handles non-primary emitter contributions. Keep
@@ -175,21 +191,9 @@ RGB PathTracingShader::IndirectIllumination(const Ray& ray, const Scene& scene, 
   return ClampRadiance(throughput * incoming_radiance / continuation_probability);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Dielectric scatter — follows the PDF (sections 11.2–11.4):
-//   1. Compute eta ratio depending on whether we enter or exit the material
-//   2. Check for Total Internal Reflection (Snell's law)
-//   3. Use Schlick approximation to randomly choose reflect vs refract
-//   4. Propagate ray.Time so moving dielectric objects respect motion blur
-//
-// Key implementation note: when a refracted ray travels inside a dielectric
-// sphere, the GridAccelerationStructure may miss the exit surface because the
-// ray origin is inside the grid cell. We therefore first test the dielectric
-// primitive directly (guaranteed hit for the exit surface), and only fall back
-// to the full scene Trace for the outgoing ray after it exits the glass.
-// ─────────────────────────────────────────────────────────────────────────────
 
-// Helper: refract a unit vector uv around normal n with eta ratio ri.
+// Dielectric scatter
+
 static Vector Refract(const Vector& uv, const Vector& n, float ri)
 {
   const float cos_theta = std::fmin(glm::dot(-uv, n), 1.0f);
@@ -209,16 +213,20 @@ static float Schlick(float cosine, float ri)
 RGB PathTracingShader::DielectricScatter(const Ray& ray, const Scene& scene,
     const Intersection& intersection, const Material& material, int depth) const
 {
+
   const float n = material.GetRefractionIndex();
   // ri = eta_i / eta_t
   const float ri = intersection.FrontFace ? (1.0f / n) : n;
 
   const Vector unit_dir = glm::normalize(ray.Direction);
   const float cos_theta = std::fmin(glm::dot(-unit_dir, intersection.Normal), 1.0f);
+
   const float sin_theta = std::sqrt(1.0f - cos_theta * cos_theta);
 
   const bool cannot_refract = ri * sin_theta > 1.0f;
-  const bool do_reflect = cannot_refract || Schlick(cos_theta, n) > Random::RandomFloat();
+  
+  const float reflect_prob = Schlick(cos_theta, ri);
+  const bool do_reflect = cannot_refract || reflect_prob > Random::RandomFloat();
 
   Vector direction;
   Vector offset_n;
@@ -235,16 +243,16 @@ RGB PathTracingShader::DielectricScatter(const Ray& ray, const Scene& scene,
 
   const Vector norm_dir = glm::normalize(direction);
   const Ray scattered{
-      .Origin    = intersection.Position + 1e-4f * offset_n,
-      .Direction = norm_dir,
-      .Time      = ray.Time,
+    .Origin    = intersection.Position + 1e-3f * offset_n,
+    .Direction = norm_dir,
+    .Time      = ray.Time,
   };
 
   Intersection next{};
   
-  RGB incoming = m_BackgroundColor;
+  RGB incoming = GetBackgroundColor(scattered.Direction);
 
-  if (scene.Trace(scattered, next))
+    if (scene.Trace(scattered, next))
   {
       const Primitive& prim = scene.GetPrimitive(next.ObjectIndex);
       const Material& next_mat = scene.GetMaterial(prim.MaterialIndex);
@@ -253,15 +261,13 @@ RGB PathTracingShader::DielectricScatter(const Ray& ray, const Scene& scene,
           incoming = DielectricScatter(scattered, scene, next, next_mat, depth + 1);
       else
           incoming = DoExecute(scattered, scene, next, depth + 1, true);
+      
   }
-
-  // Fresnel weighting
-  const float reflect_prob = Schlick(cos_theta, n);
 
   if (do_reflect)
-      return reflect_prob * incoming;
+    return reflect_prob * incoming;
   else
-      return (1.0f - reflect_prob) * incoming;
-  }
+    return (1.0f - reflect_prob) * incoming;
+}
 
 } // namespace VI

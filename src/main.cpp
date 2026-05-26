@@ -102,8 +102,7 @@ int main(int argc, char** argv)
 
   if (options.MotionBlur)
   {
-    // Dedicated motion-blur scene: bouncing coloured spheres with an ambient
-    // light, rendered with the path tracer for correct global illumination.
+    // Dedicated motion-blur scene: 
     PathTracingShader shader{{0.5f, 0.7f, 1.0f}, DirectIlluminationMode::Importance};
     Scene scene = CreateMotionBlurScene();
     scene.Build();
