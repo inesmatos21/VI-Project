@@ -837,135 +837,78 @@ Scene CreateMotionBlurScene()
  
   // ── Materiais base ────────────────────────────────────────────────────────
  
-  // Chão: cinzento difuso (igual ao PDF — checker não disponível, usamos cinzento)
+  // Chão: cinzento difuso
   const int ground_mat = scene.AddMaterial({
       .Name = "Ground",
       .Albedo = {0.5f, 0.5f, 0.5f},
       .Roughness = 1.0f,
   });
  
-  // Luz ambiente muito suave — o fundo azul do shader faz o trabalho principal
-  const int light_mat = scene.AddMaterial({
-      .Name = "Sky Light",
-      .EmissionColor = {0.7f, 0.8f, 1.0f},
-      .EmissionPower = 0.15f,
-  });
-  scene.AddLight(std::make_unique<AmbientLight>(light_mat));
- 
-  // ── Grid de esferas pequenas (fiel ao PDF) ────────────────────────────────
-  // 80% difusas COM movimento (center -> center2), fiel ao PDF
-  // 15% metálicas SEM movimento (estacionárias, como no PDF)
-  //  5% "vidro" — brancas lisas sem movimento
+  // ── Grid de esferas pequenas (APENAS DIFUSAS COM MOVIMENTO) ────────────────
+  // 100% difusas COM movimento
   for (int a = -11; a < 11; ++a)
   {
     for (int b = -11; b < 11; ++b)
     {
-      const float choose_mat = rand_float();
       const Point center{
           static_cast<float>(a) + 0.9f * rand_float(),
           0.2f,
           static_cast<float>(b) + 0.9f * rand_float(),
       };
  
-      // Afastar das 3 esferas grandes (raio de exclusão = 0.9, igual ao PDF)
+      // Afastar das 2 esferas grandes
       if (glm::length(center - Point{4.f, 0.2f, 0.f}) <= 0.9f) continue;
+      if (glm::length(center - Point{-4.f, 0.2f, 0.f}) <= 0.9f) continue;
  
-      int mat_idx;
- 
-      if (choose_mat < 0.8f)
-      {
-        // Difusa com movimento — albedo = random*random como no PDF
-        // random*random tende a produzir cores mais escuras/saturadas;
-        // usamos sqrt para termos cores mais visíveis mas mantendo o estilo
-        const RGB albedo{
-            rand_float() * rand_float(),
-            rand_float() * rand_float(),
-            rand_float() * rand_float(),
-        };
-        mat_idx = scene.AddMaterial({
-            .Name = "Small Diffuse",
-            .Albedo = albedo,
-            .Roughness = 1.0f,
-        });
-        // Movimento para cima [0, 0.5] como no PDF
-        const Point center2 = center + Point{0.f, rand_range(0.f, 0.5f), 0.f};
-        scene.AddPrimitive(Sphere{center, center2, 0.2f}, mat_idx);
-      }
-      else if (choose_mat < 0.95f)
-      {
-        // Metal estacionário — albedo [0.5,1], fuzz [0,0.5] como no PDF
-        const RGB albedo{
-            rand_range(0.5f, 1.0f),
-            rand_range(0.5f, 1.0f),
-            rand_range(0.5f, 1.0f),
-        };
-        const float fuzz = rand_range(0.0f, 0.5f);
-        mat_idx = scene.AddMaterial({
-            .Name = "Small Metal",
-            .Albedo = albedo,
-            .Roughness = fuzz,
-            .Metallic = 1.0f,
-        });
-        scene.AddPrimitive(Sphere{center, 0.2f}, mat_idx);  // estacionária
-      }
-      else
-      {
-        // "Vidro" — aproximado com material branco liso estacionário
-        mat_idx = scene.AddMaterial({
-            .Name = "Small Glass",
-            .Albedo = {0.9f, 0.9f, 0.95f},
-            .Roughness = 0.02f,
-            .Metallic = 0.0f,
-        });
-        scene.AddPrimitive(Sphere{center, 0.2f}, mat_idx);  // estacionária
-      }
+      // Difusa com movimento
+      const RGB albedo{
+          rand_float() * rand_float(),
+          rand_float() * rand_float(),
+          rand_float() * rand_float(),
+      };
+      const int mat_idx = scene.AddMaterial({
+          .Name = "Small Diffuse",
+          .Albedo = albedo,
+          .Roughness = 1.0f,
+      });
+      const Point center2 = center + Point{0.f, rand_range(0.f, 0.5f), 0.f};
+      scene.AddPrimitive(Sphere{center, center2, 0.2f}, mat_idx);
     }
   }
  
   // ── Chão ─────────────────────────────────────────────────────────────────
   scene.AddPrimitive(Sphere{Point{0.f, -1000.f, 0.f}, 1000.f}, ground_mat);
  
-  // ── 3 esferas grandes estacionárias (idênticas ao PDF) ───────────────────
+  // ── 2 esferas grandes estacionárias ───────────────────────────────────
  
-  // material1: dielectric(1.5) — vidro com refração
-  // Aproximamos com roughness muito baixa e metallic=0 (sem absorção)
-  // Albedo branco puro para não colorir a refração
-  const int mat1 = scene.AddMaterial({
-      .Name = "Glass (dielectric approx)",
-      .Albedo = {1.0f, 1.0f, 1.0f},
-      .Roughness = 0.02f,
-      .Metallic = 0.0f,
-  });
- 
-  // material2: lambertian(0.4, 0.2, 0.1) — difusa castanha
-  const int mat2 = scene.AddMaterial({
+  // material1: difusa castanha (esquerda)
+  const int mat_diffuse = scene.AddMaterial({
       .Name = "Diffuse Brown",
       .Albedo = {0.4f, 0.2f, 0.1f},
       .Roughness = 1.0f,
       .Metallic = 0.0f,
   });
  
-  // material3: metal(0.7, 0.6, 0.5), fuzz=0 — metal polido
-  const int mat3 = scene.AddMaterial({
+  // material2: metal polido (direita)
+  const int mat_metal = scene.AddMaterial({
       .Name = "Metal Polished",
       .Albedo = {0.7f, 0.6f, 0.5f},
       .Roughness = 0.02f,
       .Metallic = 1.0f,
   });
  
-  scene.AddPrimitive(Sphere{Point{ 0.f, 1.f, 0.f}, 1.0f}, mat1);  // vidro (centro)
-  scene.AddPrimitive(Sphere{Point{-4.f, 1.f, 0.f}, 1.0f}, mat2);  // difusa (esquerda)
-  scene.AddPrimitive(Sphere{Point{ 4.f, 1.f, 0.f}, 1.0f}, mat3);  // metal (direita)
+  scene.AddPrimitive(Sphere{Point{-4.f, 1.f, 0.f}, 1.0f}, mat_diffuse);  // difusa castanha (esquerda)
+  scene.AddPrimitive(Sphere{Point{ 4.f, 1.f, 0.f}, 1.0f}, mat_metal);    // metal polido (direita)
  
-  // ── Câmara idêntica ao PDF ────────────────────────────────────────────────
+  // ── Câmara ────────────────────────────────────────────────────────────────
   scene.SetCamera(Camera{
       Point{13.f, 2.f, 3.f},
       Point{0.f,  0.f, 0.f},
       Vector{0.f, 1.f, 0.f},
       1280, 720,
       glm::radians(20.f),
-      glm::radians(0.6f),  // defocus_angle = 0.6 como no PDF
-      10.f                 // focus_dist = 10 como no PDF
+      glm::radians(0.6f),
+      10.f
   });
  
   return scene;
