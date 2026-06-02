@@ -30,8 +30,6 @@ public:
     return m_BoundingBox;
   }
 
-  inline float GetRadius() const { return m_Radius; } 
-
 private:
   // Returns the sphere center at the ray's time (linear interpolation)
   Point CenterAt(float time) const {
