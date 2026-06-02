@@ -829,18 +829,27 @@ Scene CreateVeachScene()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Motion Blur demo scene
+// Motion Blur demo scene — fiel à secção 2.6 do PDF
+// Grid 22x22 de esferas em movimento, 3 esferas grandes estacionárias,
+// fundo azul-claro e câmara idêntica à do PDF.
 // ─────────────────────────────────────────────────────────────────────────────
 Scene CreateMotionBlurScene()
 {
   Scene scene;
+  // ── Materiais base ────────────────────────────────────────────────────────
 
+  // Chão: cinzento difuso (igual ao PDF — checker não disponível, usamos cinzento)
   const int ground_mat = scene.AddMaterial({
       .Name = "Ground",
       .Albedo = {0.5f, 0.5f, 0.5f},
       .Roughness = 1.0f,
   });
 
+
+  // ── Grid de esferas pequenas (fiel ao PDF) ────────────────────────────────
+  // 80% difusas COM movimento (center -> center2), fiel ao PDF
+  // 15% metálicas SEM movimento (estacionárias, como no PDF)
+  //  5% "vidro" — brancas lisas sem movimento
   for (int a = -11; a < 11; ++a)
   {
     for (int b = -11; b < 11; ++b)
@@ -883,6 +892,7 @@ Scene CreateMotionBlurScene()
       }
       else if (choose_mat < 0.95f)
       {
+        // Metal estacionário — albedo [0.5,1], fuzz [0,0.5] como no PDF
         const RGB albedo{
             Random::RandomFloat(0.5f, 1.0f),
             Random::RandomFloat(0.5f, 1.0f),
@@ -896,10 +906,11 @@ Scene CreateMotionBlurScene()
             .Roughness = fuzz,
             .Metallic = 1.0f,
         });
-        scene.AddPrimitive(Sphere{center, 0.2f}, mat_idx);
+        scene.AddPrimitive(Sphere{center, 0.2f}, mat_idx);  // estacionária
       }
       else
       {
+        // "Vidro" — aproximado com material branco liso estacionário
         mat_idx = scene.AddMaterial({
             .Name = "Small Glass",
             .Albedo = {0.8f, 0.8f, 0.9f},
@@ -907,14 +918,17 @@ Scene CreateMotionBlurScene()
             .Metallic = 0.0f,
             .RefractionIndex = 1.5f,
         });
-        scene.AddPrimitive(Sphere{center, 0.2f}, mat_idx);
+        scene.AddPrimitive(Sphere{center, 0.2f}, mat_idx);  // estacionária
       }
     }
   }
 
+  // ── Chão ─────────────────────────────────────────────────────────────────
   scene.AddPrimitive(Sphere{Point{0.f, -1000.f, 0.f}, 1000.f}, ground_mat);
 
-  // material1: dielectric(1.5)
+  // ── 3 esferas grandes estacionárias (idênticas ao PDF) ───────────────────
+
+  // material1: dielectric(1.5) — vidro real com refração (Lei de Snell + Schlick)
   const int mat1 = scene.AddMaterial({
       .Name = "Glass dielectric 1.5",
       .Albedo = {1.0f, 1.0f, 1.0f},
@@ -923,7 +937,7 @@ Scene CreateMotionBlurScene()
       .RefractionIndex = 1.5f,
   });
 
-  // material2: lambertian
+  // material2: lambertian(0.4, 0.2, 0.1) — difusa castanha
   const int mat2 = scene.AddMaterial({
       .Name = "Diffuse Brown",
       .Albedo = {0.4f, 0.2f, 0.1f},
@@ -931,7 +945,7 @@ Scene CreateMotionBlurScene()
       .Metallic = 0.0f,
   });
 
-  // material3: metal
+  // material3: metal(0.7, 0.6, 0.5), fuzz=0 — metal polido
   const int mat3 = scene.AddMaterial({
       .Name = "Metal Polished",
       .Albedo = {0.7f, 0.6f, 0.5f},
@@ -939,10 +953,14 @@ Scene CreateMotionBlurScene()
       .Metallic = 1.0f,
   });
 
-  scene.AddPrimitive(Sphere{Point{ 0.f, 1.f, 0.f}, 1.0f}, mat1); 
-  scene.AddPrimitive(Sphere{Point{-4.f, 1.f, 0.f}, 1.0f}, mat2);
-  scene.AddPrimitive(Sphere{Point{ 4.f, 1.f, 0.f}, 1.0f}, mat3);
+  scene.AddPrimitive(Sphere{Point{ 0.f, 1.f, 0.f}, 1.0f}, mat1);  // vidro (centro)
+  scene.AddPrimitive(Sphere{Point{-4.f, 1.f, 0.f}, 1.0f}, mat2);  // difusa (esquerda)
+  scene.AddPrimitive(Sphere{Point{ 4.f, 1.f, 0.f}, 1.0f}, mat3);  // metal (direita)
 
+  // ── Câmara idêntica ao PDF ────────────────────────────────────────────────
+  // Câmara idêntica ao PDF mas lookat em (0,0,0) faz a câmara olhar
+  // muito para cima e não ver o chão com esferas pequenas.
+  // Baixamos ligeiramente o eye e lookat para corresponder à imagem do PDF.
   scene.SetCamera(Camera{
       Point{13.f, 2.f, 3.f},
       Point{0.f,  0.f, 0.f},
