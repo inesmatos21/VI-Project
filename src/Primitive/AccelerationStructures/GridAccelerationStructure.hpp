@@ -17,9 +17,7 @@ class GridAccelerationStructure final : public AccelerationStructure
 {
 public:
   static GridAccelerationStructure Create(const Scene& scene);
-
   bool Trace(const Ray& ray, const Scene& scene, Intersection& intersection) const override;
-  
   void Build(const Scene& scene) override;
 
 private:
