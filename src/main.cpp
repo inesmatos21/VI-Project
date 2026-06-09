@@ -44,6 +44,7 @@ struct CommandLineOptions
   std::optional<std::filesystem::path> ScenePath = std::nullopt;
   int SamplesPerPixel = 128;
   bool MotionBlur = false;
+  bool DepthOfField = false;
 };
 
 CommandLineOptions ParseCommandLine(int argc, char** argv)
@@ -82,6 +83,12 @@ CommandLineOptions ParseCommandLine(int argc, char** argv)
       continue;
     }
 
+    if (arg == "--depth-of-field")
+    {
+      options.DepthOfField = true;
+      continue;
+    }
+
     throw std::invalid_argument("Unknown argument: " + std::string{arg});
   }
   return options;
@@ -106,6 +113,14 @@ int main(int argc, char** argv)
     // light, rendered with the path tracer for correct global illumination.
     PathTracingShader shader{{0.5f, 0.7f, 1.0f}, DirectIlluminationMode::Importance};
     Scene scene = CreateMotionBlurScene();
+    scene.Build();
+    const Camera& cam = *scene.GetCamera();
+    image = renderer.Render(scene, cam, shader, options.SamplesPerPixel, true);
+  }
+  else if (options.DepthOfField)
+  {
+    PathTracingShader shader{{0.5f, 0.7f, 1.0f}, DirectIlluminationMode::Importance};
+    Scene scene = CreateDepthOfFieldScene();
     scene.Build();
     const Camera& cam = *scene.GetCamera();
     image = renderer.Render(scene, cam, shader, options.SamplesPerPixel, true);

@@ -15,5 +15,8 @@ Scene CreateVeachScene();
 // Motion Blur
 Scene CreateMotionBlurScene();
 
+// Depth of Field
+Scene CreateDepthOfFieldScene();
+
 Scene CreateGltfScene(const std::filesystem::path& path, int camera_width = 800, int camera_height = 600);
 } // namespace VI
