@@ -961,19 +961,13 @@ Scene CreateDepthOfFieldScene()
       });
 
       // Sem movimento
-      scene.AddPrimitive(
-          Sphere{center, 0.2f},
-          mat_idx
-      );
+      scene.AddPrimitive(Sphere{center, 0.2f}, mat_idx);
     }
   }
 
   // ── Chão ─────────────────────────────────────────────────────────────────
 
-  scene.AddPrimitive(
-      Sphere{Point{0.f, -1000.f, 0.f}, 1000.f},
-      ground_mat
-  );
+  scene.AddPrimitive(Sphere{Point{0.f, -1000.f, 0.f}, 1000.f}, ground_mat);
 
   // ── Esferas grandes de referência ───────────────────────────────────────
 
@@ -1001,20 +995,11 @@ Scene CreateDepthOfFieldScene()
       .Metallic = 1.0f,
   });
 
-  scene.AddPrimitive(
-      Sphere{Point{0.f, 1.f, 0.f}, 1.0f},
-      mat_center
-  );
+  scene.AddPrimitive(Sphere{Point{0.f, 1.f, 0.f}, 1.0f}, mat_center);
 
-  scene.AddPrimitive(
-      Sphere{Point{-4.f, 1.f, 0.f}, 1.0f},
-      mat_diffuse
-  );
+  scene.AddPrimitive(Sphere{Point{-4.f, 1.f, 0.f}, 1.0f}, mat_diffuse);
 
-  scene.AddPrimitive(
-      Sphere{Point{4.f, 1.f, 0.f}, 1.0f},
-      mat_metal
-  );
+  scene.AddPrimitive(Sphere{Point{4.f, 1.f, 0.f}, 1.0f}, mat_metal);
 
   // ── Câmara com Depth of Field ────────────────────────────────────────────
 
