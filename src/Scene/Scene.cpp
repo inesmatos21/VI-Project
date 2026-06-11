@@ -16,6 +16,7 @@
 #include "Math/DiscreteDistribution.hpp"
 #include "Math/Math.hpp"
 #include "Math/RGB.hpp"
+#include "Primitive/AccelerationStructures/BVHAccelerationStructure.hpp"
 #include "Primitive/AccelerationStructures/GridAccelerationStructure.hpp"
 #include "Primitive/BoundingBox.hpp"
 #include "Primitive/Geometry/Geometry.hpp"
@@ -124,14 +125,28 @@ LightSamplingDistribution BuildLightSamplingDistribution(const Scene& scene)
 
 void Scene::Build()
 {
-  m_AccelerationStructure = GridAccelerationStructure::Create(*this);
+  switch (m_AccelerationStructureType)
+  {
+    case AccelerationStructureType::Grid:
+      m_AccelerationStructure = std::make_unique<GridAccelerationStructure>();
+      break;
+    case AccelerationStructureType::BVH:
+      m_AccelerationStructure = std::make_unique<BVHAccelerationStructure>();
+      break;
+  }
+  m_AccelerationStructure->Build(*this);
   m_LightSamplingDistribution = BuildLightSamplingDistribution(*this);
+}
+
+void Scene::SetAccelerationStructureType(AccelerationStructureType type)
+{
+  m_AccelerationStructureType = type;
 }
 
 bool Scene::Trace(const Ray& ray, Intersection& intersection) const
 {
   intersection.Distance = -1;
-  return m_AccelerationStructure.Trace(ray, *this, intersection);
+  return m_AccelerationStructure != nullptr && m_AccelerationStructure->Trace(ray, *this, intersection);
 }
 
 bool Scene::Visibility(const Ray& ray, float max_distance) const

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Primitive/AccelerationStructures/BVH.hpp"
 #include "Primitive/BoundingBox.hpp"
 #include "Primitive/Geometry/Triangle.hpp"
 
@@ -26,6 +27,7 @@ public:
         m_BoundingBox.Update(v3);
       }
     }
+    BuildBVH();
   }
 
   bool Intersect(const Ray& r, Intersection& i) const;
@@ -36,8 +38,11 @@ public:
   float GetArea() const noexcept;
 
 private:
+  void BuildBVH();
+
   std::string m_Name;
   std::vector<Triangle> m_Triangles{};
   BoundingBox m_BoundingBox{};
+  BVH m_BVH{};
 };
 } // namespace VI

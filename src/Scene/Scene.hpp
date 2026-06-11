@@ -9,7 +9,7 @@
 #include "Camera/Camera.hpp"
 #include "Light/Light.hpp"
 #include "Math/DiscreteDistribution.hpp"
-#include "Primitive/AccelerationStructures/GridAccelerationStructure.hpp"
+#include "Primitive/AccelerationStructures/AccelerationStructure.hpp"
 #include "Primitive/BoundingBox.hpp"
 #include "Primitive/Geometry/Geometry.hpp"
 #include "Primitive/Material.hpp"
@@ -21,10 +21,18 @@ namespace VI
 struct Ray;
 struct Intersection;
 
+enum class AccelerationStructureType
+{
+  Grid,
+  BVH,
+};
+
 class Scene final
 {
 public:
   void Build();
+
+  void SetAccelerationStructureType(AccelerationStructureType type);
 
   bool Trace(const Ray& ray, Intersection& intersection) const;
 
@@ -59,6 +67,7 @@ private:
   std::vector<std::unique_ptr<Light>> m_Lights{};
   std::optional<Camera> m_Camera{std::nullopt};
   LightSamplingDistribution m_LightSamplingDistribution{};
-  GridAccelerationStructure m_AccelerationStructure{};
+  AccelerationStructureType m_AccelerationStructureType{AccelerationStructureType::BVH};
+  std::unique_ptr<AccelerationStructure> m_AccelerationStructure{};
 };
 } // namespace VI

@@ -96,6 +96,11 @@ add_executable(VI-RT src/main.cpp
     src/Primitive/AccelerationStructures/GridAccelerationStructure.hpp
     src/Primitive/AccelerationStructures/GridAccelerationStructure.cpp
 
+    src/Primitive/AccelerationStructures/BVH.hpp
+    src/Primitive/AccelerationStructures/BVH.cpp
+    src/Primitive/AccelerationStructures/BVHAccelerationStructure.hpp
+    src/Primitive/AccelerationStructures/BVHAccelerationStructure.cpp
+
     # Lights
     src/Light/Light.hpp
 

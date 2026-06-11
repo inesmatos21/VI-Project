@@ -828,6 +828,105 @@ Scene CreateVeachScene()
   return scene;
 }
 
+Scene CreateBVHScene()
+{
+  Scene scene;
+
+  auto rand_float = []() -> float { return Random::RandomFloat(); };
+  auto rand_range = [&](float lo, float hi) -> float { return lo + (hi - lo) * rand_float(); };
+
+  // ── Chão ──────────────────────────────────────────────────────────────────
+  const int ground_mat = scene.AddMaterial({
+      .Name = "Ground",
+      .Albedo = {0.5f, 0.5f, 0.5f},
+      .Roughness = 1.0f,
+  });
+  scene.AddPrimitive(Sphere{Point{0.f, -1000.f, 0.f}, 1000.f}, ground_mat);
+
+  // ── Grid grande de esferas estáticas ──────────────────────────────────────
+  // Muitos objetos espalhados: o cenário onde a BVH (O(log n) por raio)
+  // se distingue da pesquisa linear (O(n)) e da grelha uniforme.
+  for (int a = -18; a < 18; ++a)
+  {
+    for (int b = -18; b < 18; ++b)
+    {
+      const Point center{
+          static_cast<float>(a) + 0.9f * rand_float(),
+          0.2f,
+          static_cast<float>(b) + 0.9f * rand_float(),
+      };
+
+      // Afastar das esferas grandes
+      if (glm::length(center - Point{4.f, 0.2f, 0.f}) <= 0.9f) continue;
+      if (glm::length(center - Point{-4.f, 0.2f, 0.f}) <= 0.9f) continue;
+      if (glm::length(center - Point{0.f, 0.2f, 0.f}) <= 0.9f) continue;
+
+      int mat_idx;
+      if (rand_float() < 0.7f)
+      {
+        // Difusa colorida
+        const RGB albedo{
+            rand_float() * rand_float(),
+            rand_float() * rand_float(),
+            rand_float() * rand_float(),
+        };
+        mat_idx = scene.AddMaterial({
+            .Name = "Small Diffuse",
+            .Albedo = albedo,
+            .Roughness = 1.0f,
+        });
+      }
+      else
+      {
+        // Metal com rugosidade variável
+        const RGB albedo{rand_range(0.5f, 1.f), rand_range(0.5f, 1.f), rand_range(0.5f, 1.f)};
+        mat_idx = scene.AddMaterial({
+            .Name = "Small Metal",
+            .Albedo = albedo,
+            .Roughness = rand_range(0.f, 0.4f),
+            .Metallic = 1.0f,
+        });
+      }
+      scene.AddPrimitive(Sphere{center, 0.2f}, mat_idx);
+    }
+  }
+
+  // ── 3 esferas grandes ─────────────────────────────────────────────────────
+  const int mat_diffuse = scene.AddMaterial({
+      .Name = "Diffuse Brown",
+      .Albedo = {0.4f, 0.2f, 0.1f},
+      .Roughness = 1.0f,
+      .Metallic = 0.0f,
+  });
+  const int mat_metal = scene.AddMaterial({
+      .Name = "Metal Polished",
+      .Albedo = {0.7f, 0.6f, 0.5f},
+      .Roughness = 0.02f,
+      .Metallic = 1.0f,
+  });
+  const int mat_metal_rough = scene.AddMaterial({
+      .Name = "Metal Rough",
+      .Albedo = {0.8f, 0.8f, 0.9f},
+      .Roughness = 0.3f,
+      .Metallic = 1.0f,
+  });
+
+  scene.AddPrimitive(Sphere{Point{-4.f, 1.f, 0.f}, 1.0f}, mat_diffuse);
+  scene.AddPrimitive(Sphere{Point{0.f, 1.f, 0.f}, 1.0f}, mat_metal_rough);
+  scene.AddPrimitive(Sphere{Point{4.f, 1.f, 0.f}, 1.0f}, mat_metal);
+
+  // ── Câmara ────────────────────────────────────────────────────────────────
+  scene.SetCamera(Camera{
+      Point{13.f, 2.f, 3.f},
+      Point{0.f, 0.f, 0.f},
+      Vector{0.f, 1.f, 0.f},
+      1280, 720,
+      glm::radians(25.f),
+  });
+
+  return scene;
+}
+
 Scene CreateMotionBlurScene()
 {
   Scene scene;
