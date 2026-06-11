@@ -1013,4 +1013,107 @@ Scene CreateMotionBlurScene()
   return scene;
 }
 
+Scene CreateDepthOfFieldScene()
+{
+  Scene scene;
+
+  auto rand_float = []() -> float { return Random::RandomFloat(); };
+
+  // ── Materiais base ────────────────────────────────────────────────────────
+
+  // Chão: cinzento difuso
+  const int ground_mat = scene.AddMaterial({
+      .Name = "Ground",
+      .Albedo = {0.5f, 0.5f, 0.5f},
+      .Roughness = 1.0f,
+  });
+
+  // ── Grid de esferas pequenas (ESTACIONÁRIAS) ─────────────────────────────
+
+  // Todas difusas, sem motion blur
+  for (int a = -11; a < 11; ++a)
+  {
+    for (int b = -11; b < 11; ++b)
+    {
+      const Point center{
+          static_cast<float>(a) + 0.9f * rand_float(),
+          0.2f,
+          static_cast<float>(b) + 0.9f * rand_float(),
+      };
+
+      // Evitar sobreposição com as esferas grandes
+      if (glm::length(center - Point{4.f, 0.2f, 0.f}) <= 0.9f) continue;
+      if (glm::length(center - Point{-4.f, 0.2f, 0.f}) <= 0.9f) continue;
+      if (glm::length(center - Point{0.f, 0.2f, 0.f}) <= 0.9f) continue;
+
+      const RGB albedo{
+          rand_float() * rand_float(),
+          rand_float() * rand_float(),
+          rand_float() * rand_float(),
+      };
+
+      const int mat_idx = scene.AddMaterial({
+          .Name = "Small Diffuse",
+          .Albedo = albedo,
+          .Roughness = 1.0f,
+      });
+
+      // Sem movimento
+      scene.AddPrimitive(Sphere{center, 0.2f}, mat_idx);
+    }
+  }
+
+  // ── Chão ─────────────────────────────────────────────────────────────────
+
+  scene.AddPrimitive(Sphere{Point{0.f, -1000.f, 0.f}, 1000.f}, ground_mat);
+
+  // ── Esferas grandes de referência ───────────────────────────────────────
+
+  // Esfera central difusa
+  const int mat_center = scene.AddMaterial({
+      .Name = "Center Diffuse",
+      .Albedo = {0.7f, 0.3f, 0.3f},
+      .Roughness = 1.0f,
+      .Metallic = 0.0f,
+  });
+
+  // Esquerda: difusa castanha
+  const int mat_diffuse = scene.AddMaterial({
+      .Name = "Diffuse Brown",
+      .Albedo = {0.4f, 0.2f, 0.1f},
+      .Roughness = 1.0f,
+      .Metallic = 0.0f,
+  });
+
+  // Direita: metal polido
+  const int mat_metal = scene.AddMaterial({
+      .Name = "Metal Polished",
+      .Albedo = {0.7f, 0.6f, 0.5f},
+      .Roughness = 0.02f,
+      .Metallic = 1.0f,
+  });
+
+  scene.AddPrimitive(Sphere{Point{0.f, 1.f, 0.f}, 1.0f}, mat_center);
+
+  scene.AddPrimitive(Sphere{Point{-4.f, 1.f, 0.f}, 1.0f}, mat_diffuse);
+
+  scene.AddPrimitive(Sphere{Point{4.f, 1.f, 0.f}, 1.0f}, mat_metal);
+
+  // ── Câmara com Depth of Field ────────────────────────────────────────────
+
+  scene.SetCamera(Camera{
+      Point{13.f, 2.f, 3.f},
+      Point{0.f, 0.f, 0.f},
+      Vector{0.f, 1.f, 0.f},
+      1280,
+      720,
+      glm::radians(20.f),
+
+      glm::radians(0.6f), // abertura da lente
+      10.f                // distância de foco
+  });
+
+  return scene;
+}
+
 } // namespace VI

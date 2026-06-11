@@ -15,6 +15,9 @@ Scene CreateVeachScene();
 // Motion Blur
 Scene CreateMotionBlurScene();
 
+// Depth of Field
+Scene CreateDepthOfFieldScene();
+
 // BVH: cena com muitos objetos para evidenciar a estrutura de aceleração
 Scene CreateBVHScene();
 

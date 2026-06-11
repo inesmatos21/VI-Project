@@ -47,6 +47,7 @@ struct CommandLineOptions
   std::optional<std::filesystem::path> ScenePath = std::nullopt;
   int SamplesPerPixel = 128;
   bool MotionBlur = false;
+  bool DepthOfField = false;
   AccelerationStructureType Accel = AccelerationStructureType::BVH;
   std::optional<Point> Eye = std::nullopt;
   std::optional<Point> At = std::nullopt;
@@ -99,6 +100,12 @@ CommandLineOptions ParseCommandLine(int argc, char** argv)
     if (arg == "--motion-blur")
     {
       options.MotionBlur = true;
+      continue;
+    }
+
+    if (arg == "--depth-of-field")
+    {
+      options.DepthOfField = true;
       continue;
     }
 
@@ -174,6 +181,10 @@ CommandLineOptions ParseCommandLine(int argc, char** argv)
     {
       options.Theme = "motion-blur";
     }
+    else if (options.DepthOfField)
+    {
+      options.Theme = "depth-of-field";
+    }
     else if (options.ScenePath.has_value())
     {
       options.Theme = "gltf";
@@ -207,6 +218,14 @@ int main(int argc, char** argv)
     PathTracingShader shader{{0.5f, 0.7f, 1.0f}, DirectIlluminationMode::Importance};
     Scene scene = CreateMotionBlurScene();
     scene.SetAccelerationStructureType(options.Accel);
+    scene.Build();
+    const Camera& cam = *scene.GetCamera();
+    image = renderer.Render(scene, cam, shader, options.SamplesPerPixel, true);
+  }
+  else if (options.Theme == "depth-of-field")
+  {
+    PathTracingShader shader{{0.5f, 0.7f, 1.0f}, DirectIlluminationMode::Importance};
+    Scene scene = CreateDepthOfFieldScene();
     scene.Build();
     const Camera& cam = *scene.GetCamera();
     image = renderer.Render(scene, cam, shader, options.SamplesPerPixel, true);
